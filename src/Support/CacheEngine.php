@@ -14,8 +14,22 @@ class CacheEngine
         }
     }
 
+    private function isCachingAllowed(): bool
+    {
+        $allowed = $_ENV['CACHING_ALLOWED'] ?? $_SERVER['CACHING_ALLOWED'] ?? getenv('CACHING_ALLOWED');
+        if ($allowed === null || $allowed === false) {
+            return false; // Default to disabled
+        }
+        $allowed = strtolower((string)$allowed);
+        return $allowed === 'true' || $allowed === '1';
+    }
+
     public function set(string $key, mixed $value, int $ttl = 3600): void
     {
+        if (!$this->isCachingAllowed()) {
+            return;
+        }
+
         $file = $this->getCacheFile($key);
         $data = [
             'expires_at' => time() + $ttl,
@@ -26,6 +40,10 @@ class CacheEngine
 
     public function get(string $key, mixed $default = null): mixed
     {
+        if (!$this->isCachingAllowed()) {
+            return $default;
+        }
+
         $file = $this->getCacheFile($key);
         if (!file_exists($file)) {
             return $default;
@@ -38,6 +56,46 @@ class CacheEngine
         }
 
         return unserialize($data['value']);
+    }
+
+    public function has(string $key): bool
+    {
+        if (!$this->isCachingAllowed()) {
+            return false;
+        }
+
+        $file = $this->getCacheFile($key);
+        if (!file_exists($file)) {
+            return false;
+        }
+
+        $data = json_decode(file_get_contents($file), true);
+        if (time() > $data['expires_at']) {
+            unlink($file);
+            return false;
+        }
+
+        return true;
+    }
+
+    public function forget(string $key): void
+    {
+        $file = $this->getCacheFile($key);
+        if (file_exists($file)) {
+            unlink($file);
+        }
+    }
+
+    public function clear(): void
+    {
+        $files = glob($this->cacheDir . '/*.cache');
+        if ($files !== false) {
+            foreach ($files as $file) {
+                if (is_file($file)) {
+                    unlink($file);
+                }
+            }
+        }
     }
 
     private function getCacheFile(string $key): string

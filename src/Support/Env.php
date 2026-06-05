@@ -9,7 +9,7 @@ class Env
     public function load(string $path): void
     {
         if (!file_exists($path)) {
-            return;
+            $this->createDefaultEnv($path);
         }
 
         $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
@@ -20,13 +20,34 @@ class Env
 
             $parts = explode('=', $line, 2);
             if (count($parts) === 2) {
-                $this->env[trim($parts[0])] = trim($parts[1]);
+                $key = trim($parts[0]);
+                $value = trim($parts[1]);
+                $this->env[$key] = $value;
+                $_ENV[$key] = $value;
+                $_SERVER[$key] = $value;
+                putenv("$key=$value");
             }
         }
+    }
+
+    private function createDefaultEnv(string $path): void
+    {
+        $content = "CACHING_ALLOWED=false\nDISALLOWED_DIRECT_ACCESS=sql,sqlite,db\n";
+        file_put_contents($path, $content);
     }
 
     public function get(string $key, mixed $default = null): mixed
     {
         return $this->env[$key] ?? $_ENV[$key] ?? $_SERVER[$key] ?? $default;
+    }
+
+    public function all(): array
+    {
+        return array_merge($_SERVER, $_ENV, $this->env);
+    }
+
+    public function has(string $key): bool
+    {
+        return isset($this->env[$key]) || isset($_ENV[$key]) || isset($_SERVER[$key]);
     }
 }

@@ -12,3 +12,6 @@ Route::get('/', [HomeController::class, 'index']);
 Route::get('/hello', function (Request $request) {
     return new Response('Hello World from Lily!');
 });
+Route::get('/nader', function (Request $request) {
+    return new Response('Nader from Lily!');
+});
