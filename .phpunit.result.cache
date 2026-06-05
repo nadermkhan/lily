@@ -1,0 +1,1 @@
+{"version":2,"defects":[],"times":{"Tests\\Unit\\RouterTest::testExactRouteDispatch":0.007,"Tests\\Unit\\RouterTest::testDynamicParameter":0,"Tests\\Unit\\RouterTest::testRegexConstraint":0,"Tests\\Unit\\RouterTest::testWildcardRoute":0,"Tests\\Unit\\RouterTest::testSubdomainRouting":0}}

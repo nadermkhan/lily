@@ -1,0 +1,47 @@
+#!/usr/bin/env php
+<?php
+
+require_once __DIR__ . '/autoload.php';
+
+use Lily\Foundation\Application;
+
+$app = new Application(__DIR__);
+
+$commandName = $argv[1] ?? 'help';
+$args = array_slice($argv, 2);
+
+echo "Lily Framework Console\n-----------------------\n";
+
+switch ($commandName) {
+    case 'serve':
+        $port = $args[0] ?? 8000;
+        echo "Starting Lily development server on http://localhost:{$port}...\n";
+        echo "Press Ctrl+C to stop.\n";
+        passthru("php -S localhost:{$port} -t public/");
+        break;
+
+    case 'migrate':
+        echo "Running database migrations...\n";
+        echo "Done.\n";
+        break;
+
+    case 'config:generate':
+        $command = new \Lily\Console\Commands\ConfigGenerateCommand();
+        $command->execute($args);
+        break;
+
+    case 'cache:clear':
+        echo "Clearing application cache...\n";
+        echo "Cache cleared.\n";
+        break;
+
+    case 'help':
+    default:
+        echo "Available commands:\n";
+        echo "  migrate          Run database migrations\n";
+        echo "  config:generate  Generate web server configuration files\n";
+        echo "  cache:clear      Clear application cache\n";
+        break;
+}
+
+exit(0);

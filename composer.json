@@ -1,0 +1,15 @@
+{
+    "name": "nader/lily",
+    "type": "project",
+    "description": "An elegant, zero-dependency, PSR-4 MVC framework.",
+    "keywords": ["framework", "mvc", "zero-dependency", "lily", "php"],
+    "license": "MIT",
+    "require": {
+        "php": "^8.2"
+    },
+    "scripts": {
+        "post-create-project-cmd": [
+            "php lily config:generate"
+        ]
+    }
+}
