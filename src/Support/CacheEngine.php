@@ -16,6 +16,17 @@ class CacheEngine
 
     private function isCachingAllowed(): bool
     {
+        // Automatically disable caching if debug mode is on
+        $debug = $_ENV['DEBUG_MODE'] ?? $_SERVER['DEBUG_MODE'] ?? getenv('DEBUG_MODE');
+        if ($debug !== false && $debug !== null) {
+            $debugStr = strtolower((string)$debug);
+            if ($debugStr === 'true' || $debugStr === '1') {
+                return false;
+            }
+        } elseif (defined('DEBUG_MODE') && DEBUG_MODE === true) {
+            return false;
+        }
+
         $allowed = $_ENV['CACHING_ALLOWED'] ?? $_SERVER['CACHING_ALLOWED'] ?? getenv('CACHING_ALLOWED');
         if ($allowed === null || $allowed === false) {
             return false; // Default to disabled
