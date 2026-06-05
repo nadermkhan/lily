@@ -32,7 +32,7 @@ class Env
 
     private function createDefaultEnv(string $path): void
     {
-        $content = "CACHING_ALLOWED=false\nDISALLOWED_DIRECT_ACCESS=sql,sqlite,db\n";
+        $content = "CACHING_ALLOWED=false\nDISALLOWED_DIRECT_ACCESS=sql,sqlite,db\nSTRICT_TYPE_SAFETY=true\nTELEGRAM_BOT_TOKEN=\nTELEGRAM_CHAT_ID=\n";
         file_put_contents($path, $content);
     }
 
