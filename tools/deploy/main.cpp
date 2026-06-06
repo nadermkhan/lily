@@ -51,32 +51,47 @@ void doPush(FtpClient& ftp, State& state, bool force, int concurrency) {
     std::unordered_map<std::string, std::string> newState;
     
     std::atomic<int> uploadedCount = 0;
-    std::mutex stateMutex;
+    std::vector<std::string> filesToUpload;
 
-    {
+    for (const auto& file : localFiles) {
+        std::string hash = Hash::sha1_file(file);
+        
+        {
+            std::lock_guard<std::mutex> lock(stateMutex);
+            newState[file] = hash;
+        }
+        
+        if (force || previousState.find(file) == previousState.end() || previousState.at(file) != hash) {
+            filesToUpload.push_back(file);
+        }
+    }
+
+    if (!filesToUpload.empty()) {
         ThreadPool pool(concurrency);
-        for (const auto& file : localFiles) {
-            std::string hash = Hash::sha1_file(file);
-            
-            {
-                std::lock_guard<std::mutex> lock(stateMutex);
-                newState[file] = hash;
+        const size_t batchSize = 25;
+        for (size_t i = 0; i < filesToUpload.size(); i += batchSize) {
+            std::vector<std::string> batch;
+            for (size_t j = i; j < i + batchSize && j < filesToUpload.size(); ++j) {
+                batch.push_back(filesToUpload[j]);
             }
             
-            if (force || previousState.find(file) == previousState.end() || previousState.at(file) != hash) {
-                pool.enqueue([&ftp, file, hash, &stateMutex, &newState, &uploadedCount]() {
-                    {
-                        std::lock_guard<std::mutex> lock(g_printMutex);
-                        std::cout << "Uploading: " << file << "...\n";
+            pool.enqueue([&ftp, batch, &stateMutex, &newState, &uploadedCount]() {
+                {
+                    std::lock_guard<std::mutex> lock(g_printMutex);
+                    for (const auto& f : batch) {
+                        std::cout << "Uploading: " << f << "...\n";
                     }
-                    if (ftp.upload(file, file)) {
-                        uploadedCount++;
-                    } else {
-                        std::lock_guard<std::mutex> lock(stateMutex);
-                        newState.erase(file); // remove from new state so it will be retried next time
+                }
+                
+                if (ftp.uploadBatch(batch)) {
+                    uploadedCount += batch.size();
+                } else {
+                    std::lock_guard<std::mutex> lock(stateMutex);
+                    for (const auto& f : batch) {
+                        newState.erase(f); // remove from new state so it will be retried next time
                     }
-                });
-            }
+                }
+            });
         }
     }
 
@@ -111,7 +126,7 @@ void doPush(FtpClient& ftp, State& state, bool force, int concurrency) {
 
 std::atomic<int> downloadedCount = 0;
 
-void downloadDirectory(FtpClient& ftp, const std::string& remoteDir, const std::string& localDir, bool force, ThreadPool& pool, State& state, std::mutex& mtx) {
+void collectDownloadFiles(FtpClient& ftp, const std::string& remoteDir, const std::string& localDir, bool force, std::vector<std::pair<std::string, std::string>>& toDownload) {
     if (!fs::exists(localDir) && localDir != ".") {
         fs::create_directories(localDir);
     }
@@ -123,23 +138,14 @@ void downloadDirectory(FtpClient& ftp, const std::string& remoteDir, const std::
         if (isIgnored(localPath)) continue;
 
         if (item.isDir) {
-            downloadDirectory(ftp, nextRemotePath, localPath, force, pool, state, mtx);
+            collectDownloadFiles(ftp, nextRemotePath, localPath, force, toDownload);
         } else {
             if (!force && fs::exists(localPath)) {
                 if (fs::file_size(localPath) == item.size) {
                     continue; // Skip identical size
                 }
             }
-            
-            pool.enqueue([&ftp, nextRemotePath, localPath]() {
-                {
-                    std::lock_guard<std::mutex> lock(g_printMutex);
-                    std::cout << "Downloading: " << localPath << "...\n";
-                }
-                if (ftp.download(nextRemotePath, localPath)) {
-                    downloadedCount++;
-                }
-            });
+            toDownload.push_back({nextRemotePath, localPath});
         }
     }
 }
@@ -147,10 +153,32 @@ void downloadDirectory(FtpClient& ftp, const std::string& remoteDir, const std::
 void doPull(FtpClient& ftp, State& state, bool force, int concurrency) {
     std::cout << "Fetching remote files...\n";
     downloadedCount = 0;
-    std::mutex mtx;
-    {
+    
+    std::vector<std::pair<std::string, std::string>> filesToDownload;
+    collectDownloadFiles(ftp, "", ".", force, filesToDownload);
+
+    if (!filesToDownload.empty()) {
         ThreadPool pool(concurrency);
-        downloadDirectory(ftp, "", ".", force, pool, state, mtx);
+        const size_t batchSize = 25;
+        for (size_t i = 0; i < filesToDownload.size(); i += batchSize) {
+            std::vector<std::pair<std::string, std::string>> batch;
+            for (size_t j = i; j < i + batchSize && j < filesToDownload.size(); ++j) {
+                batch.push_back(filesToDownload[j]);
+            }
+            
+            pool.enqueue([&ftp, batch]() {
+                {
+                    std::lock_guard<std::mutex> lock(g_printMutex);
+                    for (const auto& p : batch) {
+                        std::cout << "Downloading: " << p.second << "...\n";
+                    }
+                }
+                
+                if (ftp.downloadBatch(batch)) {
+                    downloadedCount += batch.size();
+                }
+            });
+        }
     }
     
     // Update local state hashes after pull

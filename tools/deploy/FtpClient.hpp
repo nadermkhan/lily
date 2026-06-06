@@ -67,10 +67,16 @@ public:
         return secure ? " --ssl-reqd --insecure " : " ";
     }
 
-    bool upload(const std::string& localPath, const std::string& remotePath) {
-        std::string url = getBaseUrl() + remotePath;
-        std::string cmd = "curl.exe -sS --ftp-create-dirs -T \"" + localPath + "\" \"" + url + "\"" + getAuthArg() + getSecureArg();
-        
+    bool uploadBatch(const std::vector<std::string>& localPaths) {
+        if (localPaths.empty()) return true;
+
+        std::string cmd = "curl.exe -sS --ftp-create-dirs ";
+        for (const auto& path : localPaths) {
+            std::string url = getBaseUrl() + path;
+            cmd += "-T \"" + path + "\" \"" + url + "\" ";
+        }
+        cmd += getAuthArg() + getSecureArg();
+
         int retries = 3;
         while (retries > 0) {
             bool success;
@@ -80,7 +86,7 @@ public:
             retries--;
             if (retries == 0) {
                 std::lock_guard<std::mutex> lock(g_printMutex);
-                std::cerr << "Upload failed for " << localPath << ": " << output << "\n";
+                std::cerr << "Batch upload failed: " << output << "\n";
                 return false;
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(2000));
@@ -88,10 +94,16 @@ public:
         return false;
     }
 
-    bool download(const std::string& remotePath, const std::string& localPath) {
-        std::string url = getBaseUrl() + remotePath;
-        std::string cmd = "curl.exe -sS -o \"" + localPath + "\" \"" + url + "\"" + getAuthArg() + getSecureArg();
-        
+    bool downloadBatch(const std::vector<std::pair<std::string, std::string>>& paths) {
+        if (paths.empty()) return true;
+
+        std::string cmd = "curl.exe -sS ";
+        for (const auto& p : paths) {
+            std::string url = getBaseUrl() + p.first;
+            cmd += "-o \"" + p.second + "\" \"" + url + "\" ";
+        }
+        cmd += getAuthArg() + getSecureArg();
+
         int retries = 3;
         while (retries > 0) {
             bool success;
@@ -101,7 +113,7 @@ public:
             retries--;
             if (retries == 0) {
                 std::lock_guard<std::mutex> lock(g_printMutex);
-                std::cerr << "Download failed for " << remotePath << ": " << output << "\n";
+                std::cerr << "Batch download failed: " << output << "\n";
                 return false;
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(2000));
