@@ -34,13 +34,18 @@ switch ($commandName) {
         break;
 
     case 'push':
-        $command = new \Lily\Console\Commands\PushCommand();
-        $command->execute($args);
-        break;
-
     case 'pull':
-        $command = new \Lily\Console\Commands\PullCommand();
-        $command->execute($args);
+    case 'format':
+    case 'backup':
+        $exe = __DIR__ . '/lilyassist.exe';
+        if (!file_exists($exe)) {
+            echo "Error: lilyassist.exe not found. Please compile it first.\n";
+            exit(1);
+        }
+        $cmdArgs = array_map('escapeshellarg', $args);
+        $cmdStr = escapeshellarg($exe) . " $commandName " . implode(' ', $cmdArgs);
+        passthru($cmdStr, $status);
+        exit($status);
         break;
 
     case 'queue:work':
@@ -96,8 +101,10 @@ switch ($commandName) {
         
         echo "\033[32m  Deployment & Auth\033[0m\n";
         echo "    \033[36mbolt:compile\033[0m     Compile Bolt API tokens into high-speed OPcache\n";
-        echo "    \033[36mpush\033[0m             Push local project files to FTP server\n";
-        echo "    \033[36mpull\033[0m             Pull remote project files from FTP server\n";
+        echo "    \033[36mpush\033[0m             Push local project files to FTP server (via LilyAssist)\n";
+        echo "    \033[36mpull\033[0m             Pull remote project files from FTP server (via LilyAssist)\n";
+        echo "    \033[36mformat\033[0m           Emptify source code / minify PHP files (via LilyAssist)\n";
+        echo "    \033[36mbackup\033[0m           Backup the remote server root to a local zip (via LilyAssist)\n";
         
         echo "\n";
         break;
