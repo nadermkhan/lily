@@ -6,7 +6,7 @@ class EnvGenerateCommand
 {
     public function execute(array $args): void
     {
-        $basePath = dirname(__DIR__, 4);
+        $basePath = dirname(__DIR__, 3);
         $envPath = $basePath . '/.env';
         $examplePath = $basePath . '/.env.example';
 
