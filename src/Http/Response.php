@@ -38,4 +38,13 @@ class Response
 
         echo $this->content;
     }
+
+    public static function json(array|object $data, int $statusCode = 200): self
+    {
+        return new self(
+            json_encode($data),
+            $statusCode,
+            ['Content-Type' => 'application/json']
+        );
+    }
 }

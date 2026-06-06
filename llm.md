@@ -76,7 +76,16 @@ class HomeController {
     public function index(Request $request): Response {
         // Access attributes injected by middleware
         $variant = $request->getAttribute('X_EXPERIMENT_VARIANT');
-        return new Response("Hello. Variant: " . $variant);
+        
+        // Parse incoming JSON payload
+        $payload = $request->json(); // Gets decoded php://input array
+        $userId = $request->json('user_id'); // Plucks specific key
+
+        // Return a JSON Response natively
+        return Response::json([
+            'message' => "Hello. Variant: " . $variant,
+            'received_id' => $userId
+        ]);
     }
 }
 ```
