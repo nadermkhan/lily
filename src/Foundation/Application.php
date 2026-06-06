@@ -16,6 +16,12 @@ class Application extends Container
     public function __construct(string $basePath = '')
     {
         $this->basePath = rtrim($basePath, '\/');
+        
+        // Auto-load environment variables globally
+        if (!empty($this->basePath)) {
+            Env::load($this->basePath . '/.env');
+        }
+
         $this->registerBaseBindings();
         $this->initErrorHandling();
     }
