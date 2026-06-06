@@ -20,6 +20,13 @@ class PushCommand
 
     public function execute(array $args): void
     {
+        if (Env::get('APP_ENV', 'development') === 'production') {
+            echo "Error: Push is not allowed in production mode.\n";
+            return;
+        }
+
+        $force = in_array('-f', $args) || in_array('--force', $args);
+
         $host = Env::get('FTP_HOST');
         $port = Env::get('FTP_PORT', 21);
         $user = Env::get('FTP_USER');
@@ -58,12 +65,12 @@ class PushCommand
             return;
         }
 
-        ftp_pasv($conn, true); // Use passive mode
+        ftp_pasv($conn, true);
 
         echo "Scanning local files...\n";
         
         $localFiles = $this->scanDirectory('.');
-        $previousState = $this->loadState();
+        $previousState = $force ? [] : $this->loadState();
         $newState = [];
         
         $uploadedCount = 0;
@@ -73,7 +80,6 @@ class PushCommand
             $newState[$file] = $hash;
             
             if (!isset($previousState[$file]) || $previousState[$file] !== $hash) {
-                // File is new or changed
                 $remotePath = rtrim($root, '/') . '/' . ltrim($file, './');
                 
                 echo "Uploading: $file...\n";
@@ -101,7 +107,13 @@ class PushCommand
             }
         }
 
-        $this->saveState($newState);
+        // if we forced, we still want to save the new full state
+        if ($force) {
+            $this->saveState($newState);
+        } else {
+            // merge with any old state if not forced
+            $this->saveState(array_merge($previousState, $newState));
+        }
         
         ftp_close($conn);
         echo "Push complete! $uploadedCount files uploaded.\n";

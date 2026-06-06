@@ -6,6 +6,7 @@ use Lily\Support\Env;
 
 class PullCommand
 {
+    private string $stateFile = '.lily_sync_state.json';
     private array $ignoredPaths = [
         '.git/',
         'tests/',
@@ -16,9 +17,17 @@ class PullCommand
         'qa_tester.ps1',
         '.lily_sync_state.json'
     ];
+    private bool $force = false;
 
     public function execute(array $args): void
     {
+        if (Env::get('APP_ENV', 'development') === 'production') {
+            echo "Error: Pull is not allowed in production mode.\n";
+            return;
+        }
+
+        $this->force = in_array('-f', $args) || in_array('--force', $args);
+
         $host = Env::get('FTP_HOST');
         $port = Env::get('FTP_PORT', 21);
         $user = Env::get('FTP_USER');
@@ -63,6 +72,9 @@ class PullCommand
         
         $downloadedCount = $this->downloadDirectory($conn, $root, '.');
         
+        // Update local state hashes after pull
+        $this->updateLocalState();
+        
         ftp_close($conn);
         echo "Pull complete! $downloadedCount files downloaded.\n";
     }
@@ -71,16 +83,13 @@ class PullCommand
     {
         $count = 0;
         
-        // Ensure local directory exists
         if (!file_exists($localDir) && $localDir !== '.') {
             mkdir($localDir, 0777, true);
         }
 
-        // Try to get list of files
         $contents = @ftp_mlsd($conn, $remoteDir);
         
         if ($contents !== false) {
-            // Server supports MLSD (modern, structured list)
             foreach ($contents as $item) {
                 if ($item['name'] === '.' || $item['name'] === '..') continue;
                 
@@ -92,6 +101,17 @@ class PullCommand
                 if ($item['type'] === 'dir') {
                     $count += $this->downloadDirectory($conn, $remotePath, $localPath);
                 } elseif ($item['type'] === 'file') {
+                    
+                    $remoteSize = (int)$item['size'];
+                    
+                    if (!$this->force && file_exists($localPath)) {
+                        $localSize = filesize($localPath);
+                        if ($localSize === $remoteSize) {
+                            // Skip if size matches and not forced
+                            continue;
+                        }
+                    }
+
                     echo "Downloading: $localPath...\n";
                     if (ftp_get($conn, $localPath, $remotePath, FTP_BINARY)) {
                         $count++;
@@ -101,24 +121,30 @@ class PullCommand
                 }
             }
         } else {
-            // Fallback to nlist (basic list)
             $items = @ftp_nlist($conn, $remoteDir);
             if ($items !== false) {
                 foreach ($items as $item) {
                     $basename = basename($item);
                     if ($basename === '.' || $basename === '..') continue;
                     
-                    // nlist can sometimes return full paths
                     $remotePath = (strpos($item, '/') !== false) ? $item : rtrim($remoteDir, '/') . '/' . $item;
                     $localPath = $localDir === '.' ? $basename : $localDir . '/' . $basename;
                     
                     if ($this->isIgnored($localPath)) continue;
 
-                    // Check if directory by trying to chdir
                     if (@ftp_chdir($conn, $remotePath)) {
                         @ftp_chdir($conn, $remoteDir); // go back
                         $count += $this->downloadDirectory($conn, $remotePath, $localPath);
                     } else {
+                        
+                        if (!$this->force && file_exists($localPath)) {
+                            $remoteSize = ftp_size($conn, $remotePath);
+                            $localSize = filesize($localPath);
+                            if ($remoteSize !== -1 && $localSize === $remoteSize) {
+                                continue;
+                            }
+                        }
+
                         echo "Downloading: $localPath...\n";
                         if (ftp_get($conn, $localPath, $remotePath, FTP_BINARY)) {
                             $count++;
@@ -152,5 +178,38 @@ class PullCommand
         }
         
         return false;
+    }
+
+    private function updateLocalState(): void
+    {
+        $localFiles = $this->scanDirectory('.');
+        $state = [];
+        foreach ($localFiles as $file) {
+            $state[$file] = sha1_file($file);
+        }
+        file_put_contents($this->stateFile, json_encode($state, JSON_PRETTY_PRINT));
+    }
+
+    private function scanDirectory(string $dir): array
+    {
+        $files = [];
+        $items = @scandir($dir);
+        
+        if ($items === false) return [];
+        
+        foreach ($items as $item) {
+            if ($item === '.' || $item === '..') continue;
+            
+            $path = $dir === '.' ? $item : $dir . '/' . $item;
+            if ($this->isIgnored($path)) continue;
+            
+            if (is_dir($path)) {
+                $files = array_merge($files, $this->scanDirectory($path));
+            } else {
+                $files[] = $path;
+            }
+        }
+        
+        return $files;
     }
 }

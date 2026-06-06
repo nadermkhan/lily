@@ -32,7 +32,7 @@ class Env
 
     private static function createDefaultEnv(string $path): void
     {
-        $content = "CACHING_ALLOWED=false\nDISALLOWED_DIRECT_ACCESS=sql,sqlite,db\nSTRICT_TYPE_SAFETY=true\nSTORAGE=local\nTELEGRAM_BOT_TOKEN=\nTELEGRAM_CHAT_ID=\nFTP_HOST=\nFTP_PORT=21\nFTP_USER=\nFTP_PASS=\nFTP_ROOT=/\nFTP_SECURE=true\n";
+        $content = "APP_ENV=development\nCACHING_ALLOWED=false\nDISALLOWED_DIRECT_ACCESS=sql,sqlite,db\nSTRICT_TYPE_SAFETY=true\nSTORAGE=local\nTELEGRAM_BOT_TOKEN=\nTELEGRAM_CHAT_ID=\nFTP_HOST=\nFTP_PORT=21\nFTP_USER=\nFTP_PASS=\nFTP_ROOT=/\nFTP_SECURE=true\n";
         file_put_contents($path, $content);
     }
 
