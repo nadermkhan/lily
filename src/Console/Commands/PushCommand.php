@@ -4,7 +4,7 @@ namespace Lily\Console\Commands;
 
 use Lily\Support\Env;
 
-class SyncCommand
+class PushCommand
 {
     private string $stateFile = '.lily_sync_state.json';
     private array $ignoredPaths = [
@@ -34,6 +34,7 @@ class SyncCommand
 
         echo "Connecting to $host...\n";
         
+        $conn = null;
         if ($secure && function_exists('ftp_ssl_connect')) {
             $conn = @ftp_ssl_connect($host, $port);
             if ($conn) {
@@ -42,7 +43,7 @@ class SyncCommand
         }
 
         if (empty($conn)) {
-            $conn = ftp_connect($host, $port);
+            $conn = @ftp_connect($host, $port);
             if ($conn) {
                 echo "Established standard FTP connection.\n";
             } else {
@@ -83,23 +84,17 @@ class SyncCommand
                     $uploadedCount++;
                 } else {
                     echo "Failed to upload $file\n";
-                    // Don't save the hash if upload failed so it tries again next time
                     unset($newState[$file]);
                 }
             }
         }
 
-        // We can optionally handle deletions here
         foreach ($previousState as $file => $hash) {
             if (!isset($newState[$file]) && file_exists($file) === false) {
-                // File was deleted locally
                 $remotePath = rtrim($root, '/') . '/' . ltrim($file, './');
                 echo "Deleting remote: $file...\n";
                 @ftp_delete($conn, $remotePath);
             } elseif (!isset($newState[$file])) {
-                 // File still exists locally but failed to upload or was ignored this time
-                 // If it failed to upload, we restore its previous hash so it stays in state
-                 // unless it was actually ignored, but if it was ignored it wouldn't be in $localFiles.
                  if (in_array($file, $this->scanDirectory('.'))) {
                      $newState[$file] = $hash;
                  }
@@ -109,13 +104,15 @@ class SyncCommand
         $this->saveState($newState);
         
         ftp_close($conn);
-        echo "Sync complete! $uploadedCount files uploaded.\n";
+        echo "Push complete! $uploadedCount files uploaded.\n";
     }
 
     private function scanDirectory(string $dir): array
     {
         $files = [];
-        $items = scandir($dir);
+        $items = @scandir($dir);
+        
+        if ($items === false) return [];
         
         foreach ($items as $item) {
             if ($item === '.' || $item === '..') {
@@ -140,19 +137,16 @@ class SyncCommand
 
     private function isIgnored(string $path): bool
     {
-        // Normalize path for comparison
         $path = str_replace('\\', '/', $path);
         
         foreach ($this->ignoredPaths as $ignored) {
             $ignored = str_replace('\\', '/', $ignored);
             
             if (str_ends_with($ignored, '/')) {
-                // Directory ignore
                 if (str_starts_with($path . '/', ltrim($ignored, './'))) {
                     return true;
                 }
             } else {
-                // File ignore
                 if ($path === ltrim($ignored, './')) {
                     return true;
                 }
@@ -172,8 +166,9 @@ class SyncCommand
         $currentDir = '';
 
         foreach ($parts as $part) {
+            if (empty($part)) continue;
+            
             $currentDir .= '/' . $part;
-            // Trying to change to the directory. If it fails, try to create it.
             if (!@ftp_chdir($conn, $currentDir)) {
                 @ftp_mkdir($conn, $currentDir);
             }
