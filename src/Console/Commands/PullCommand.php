@@ -67,6 +67,11 @@ class PullCommand
         }
 
         ftp_pasv($conn, true);
+        
+        // Fix for cloud providers (like Azure) returning internal IPs during passive mode
+        if (defined('FTP_USEPASVADDRESS')) {
+            ftp_set_option($conn, FTP_USEPASVADDRESS, false);
+        }
 
         echo "Fetching remote files from {$root}...\n";
         
