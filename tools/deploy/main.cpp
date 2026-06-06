@@ -44,7 +44,33 @@ std::vector<std::string> scanLocalDirectory(const std::string& dir) {
     return files;
 }
 
-void doPush(FtpClient& ftp, State& state, bool force, int concurrency) {
+void doFormat() {
+    std::cout << "Emptifying source code (Minification)...\n";
+    std::string script = "<?php\n"
+        "function formatDir($dir) {\n"
+        "    foreach (scandir($dir) as $f) {\n"
+        "        if ($f === '.' || $f === '..') continue;\n"
+        "        $path = $dir . '/' . $f;\n"
+        "        if (is_dir($path)) {\n"
+        "            if ($f !== 'vendor' && $f !== '.git') formatDir($path);\n"
+        "        } elseif (pathinfo($path, PATHINFO_EXTENSION) === 'php') {\n"
+        "            echo 'Emptifying: ' . $path . \"\\n\";\n"
+        "            file_put_contents($path, php_strip_whitespace($path));\n"
+        "        }\n"
+        "    }\n"
+        "}\n"
+        "formatDir('.');\n";
+    
+    std::ofstream out(".lily_formatter.php");
+    out << script;
+    out.close();
+
+    system("php .lily_formatter.php");
+    fs::remove(".lily_formatter.php");
+    std::cout << "Emptification complete!\n";
+}
+
+void doPush(FtpClient& ftp, State& state, bool force, int concurrency, const std::string& appUrl) {
     std::cout << "Scanning local files...\n";
     auto localFiles = scanLocalDirectory(".");
     std::unordered_map<std::string, std::string> previousState = force ? std::unordered_map<std::string, std::string>() : state.getAll();
@@ -68,31 +94,81 @@ void doPush(FtpClient& ftp, State& state, bool force, int concurrency) {
     }
 
     if (!filesToUpload.empty()) {
-        ThreadPool pool(concurrency);
-        const size_t batchSize = 25;
-        for (size_t i = 0; i < filesToUpload.size(); i += batchSize) {
-            std::vector<std::string> batch;
-            for (size_t j = i; j < i + batchSize && j < filesToUpload.size(); ++j) {
-                batch.push_back(filesToUpload[j]);
+        if (!appUrl.empty()) {
+            std::cout << "Archiving " << filesToUpload.size() << " files for Zip Drop Agent...\n";
+            std::ofstream listFile(".lily_payload_list.txt");
+            for (const auto& f : filesToUpload) {
+                listFile << f << "\n";
             }
-            
-            pool.enqueue([&ftp, batch, &stateMutex, &newState, &uploadedCount]() {
-                {
-                    std::lock_guard<std::mutex> lock(g_printMutex);
-                    for (const auto& f : batch) {
-                        std::cout << "Uploading: " << f << "...\n";
+            listFile.close();
+
+            std::string zipper = "<?php\n"
+                "$z = new ZipArchive();\n"
+                "$z->open('.lily_payload.zip', ZipArchive::CREATE | ZipArchive::OVERWRITE);\n"
+                "$files = file('.lily_payload_list.txt', FILE_IGNORE_NEW_LINES);\n"
+                "foreach ($files as $f) { $z->addFile($f, $f); }\n"
+                "$z->close();\n";
+            std::ofstream zout(".lily_zipper.php"); zout << zipper; zout.close();
+            system("php .lily_zipper.php");
+            fs::remove(".lily_payload_list.txt"); fs::remove(".lily_zipper.php");
+
+            std::cout << "Uploading payload via FTP...\n";
+            if (ftp.upload(".lily_payload.zip", ".lily_payload.zip")) {
+                std::string agent = "<?php\n"
+                    "$z = new ZipArchive;\n"
+                    "if ($z->open(__DIR__ . '/../.lily_payload.zip') === TRUE) {\n"
+                    "    $z->extractTo(__DIR__ . '/../'); $z->close();\n"
+                    "    @unlink(__DIR__ . '/../.lily_payload.zip');\n"
+                    "    @unlink(__FILE__);\n"
+                    "    echo 'SUCCESS';\n"
+                    "} else { echo 'FAILED'; }\n";
+                std::ofstream aout(".lily_agent.php"); aout << agent; aout.close();
+                
+                std::cout << "Uploading deployment agent...\n";
+                if (ftp.upload(".lily_agent.php", "public/.lily_agent.php")) {
+                    std::cout << "Triggering instantaneous Zip Drop Agent...\n";
+                    bool triggerSucc;
+                    std::string out = ftp.execCommand("curl.exe -sS \"" + appUrl + "/.lily_agent.php\"", triggerSucc);
+                    if (out.find("SUCCESS") != std::string::npos) {
+                        std::cout << "Zip Drop Deployment Complete! " << filesToUpload.size() << " files extracted on server.\n";
+                        for (const auto& kv : newState) state.set(kv.first, kv.second);
+                    } else {
+                        std::cerr << "Zip Drop Agent failed: " << out << "\n";
                     }
+                }
+                fs::remove(".lily_agent.php");
+            }
+            fs::remove(".lily_payload.zip");
+        } else {
+            // Fallback to batched FTP
+            ThreadPool pool(concurrency);
+            const size_t batchSize = 25;
+            for (size_t i = 0; i < filesToUpload.size(); i += batchSize) {
+                std::vector<std::string> batch;
+                for (size_t j = i; j < i + batchSize && j < filesToUpload.size(); ++j) {
+                    batch.push_back(filesToUpload[j]);
                 }
                 
-                if (ftp.uploadBatch(batch)) {
-                    uploadedCount += batch.size();
-                } else {
-                    std::lock_guard<std::mutex> lock(stateMutex);
-                    for (const auto& f : batch) {
-                        newState.erase(f); // remove from new state so it will be retried next time
+                pool.enqueue([&ftp, batch, &stateMutex, &newState, &uploadedCount]() {
+                    {
+                        std::lock_guard<std::mutex> lock(g_printMutex);
+                        for (const auto& f : batch) {
+                            std::cout << "Uploading: " << f << "...\n";
+                        }
                     }
-                }
-            });
+                    
+                    if (ftp.uploadBatch(batch)) {
+                        uploadedCount += batch.size();
+                    } else {
+                        std::lock_guard<std::mutex> lock(stateMutex);
+                        for (const auto& f : batch) {
+                            newState.erase(f);
+                        }
+                    }
+                });
+            }
+            
+            // Wait for thread pool to finish
         }
     }
 
@@ -183,17 +259,62 @@ void doPull(FtpClient& ftp, State& state, bool force, int concurrency) {
     }
     
     // Update local state hashes after pull
-    auto localFiles = scanLocalDirectory(".");
-    for (const auto& file : localFiles) {
-        state.set(file, Hash::sha1_file(file));
+    if (downloadedCount > 0) {
+        auto finalFiles = scanLocalDirectory(".");
+        for (const auto& file : finalFiles) {
+            state.set(file, Hash::sha1_file(file));
+        }
+        std::cout << "Pull complete! " << downloadedCount << " files downloaded.\n";
+    } else {
+        std::cout << "Pull complete! 0 files downloaded.\n";
     }
-    state.save();
-    std::cout << "Pull complete! " << downloadedCount << " files downloaded.\n";
+}
+
+void doBackup(FtpClient& ftp, const std::string& appUrl) {
+    if (appUrl.empty()) {
+        std::cerr << "Error: APP_URL must be set in .env for high-speed backup.\n";
+        return;
+    }
+    std::cout << "Uploading backup agent...\n";
+    std::string agent = "<?php\n"
+        "$root = realpath(__DIR__ . '/../');\n"
+        "$zipFile = __DIR__ . '/../server_backup.zip';\n"
+        "$z = new ZipArchive();\n"
+        "if ($z->open($zipFile, ZipArchive::CREATE | ZipArchive::OVERWRITE)) {\n"
+        "    $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root), RecursiveIteratorIterator::LEAVES_ONLY);\n"
+        "    foreach ($files as $name => $file) {\n"
+        "        if (!$file->isDir()) {\n"
+        "            $fp = $file->getRealPath();\n"
+        "            $rel = substr($fp, strlen($root) + 1);\n"
+        "            if (strpos($rel, 'server_backup.zip') === false) $z->addFile($fp, $rel);\n"
+        "        }\n"
+        "    }\n"
+        "    $z->close();\n"
+        "    @unlink(__FILE__);\n"
+        "    echo 'SUCCESS';\n"
+        "} else { echo 'FAILED'; }\n";
+        
+    std::ofstream aout(".lily_backup_agent.php"); aout << agent; aout.close();
+    if (ftp.upload(".lily_backup_agent.php", "public/.lily_backup_agent.php")) {
+        std::cout << "Triggering high-speed remote backup...\n";
+        bool succ;
+        std::string out = ftp.execCommand("curl.exe -sS \"" + appUrl + "/.lily_backup_agent.php\"", succ);
+        if (out.find("SUCCESS") != std::string::npos) {
+            std::cout << "Downloading server_backup.zip...\n";
+            if (ftp.download("server_backup.zip", "server_backup.zip")) {
+                std::cout << "Backup downloaded successfully to server_backup.zip!\n";
+                ftp.deleteFile("server_backup.zip");
+            }
+        } else {
+            std::cerr << "Backup agent failed: " << out << "\n";
+        }
+    }
+    fs::remove(".lily_backup_agent.php");
 }
 
 int main(int argc, char* argv[]) {
     if (argc < 2) {
-        std::cout << "Usage: lily-deploy <push|pull> [-f|--force]\n";
+        std::cerr << "Usage: lily-deploy <push|pull|format|backup> [-f|--force]\n";
         return 1;
     }
     
@@ -204,9 +325,14 @@ int main(int argc, char* argv[]) {
         if (arg == "-f" || arg == "--force") force = true;
     }
     
-    if (command != "push" && command != "pull") {
-        std::cout << "Unknown command. Use push or pull.\n";
+    if (command != "push" && command != "pull" && command != "format" && command != "backup") {
+        std::cerr << "Invalid command. Use 'push', 'pull', 'format', or 'backup'.\n";
         return 1;
+    }
+
+    if (command == "format") {
+        doFormat();
+        return 0;
     }
     
     std::string envPath = "";
@@ -256,13 +382,20 @@ int main(int argc, char* argv[]) {
         return 1;
     }
     
+    std::string appUrl = env.get("APP_URL", "");
+    if (!appUrl.empty() && appUrl.back() == '/') {
+        appUrl.pop_back();
+    }
+
     FtpClient ftp(host, port, user, pass, root, secure);
     State state(".lily_sync_state.json");
     
     if (command == "push") {
-        doPush(ftp, state, force, concurrency);
-    } else {
+        doPush(ftp, state, force, concurrency, appUrl);
+    } else if (command == "pull") {
         doPull(ftp, state, force, concurrency);
+    } else if (command == "backup") {
+        doBackup(ftp, appUrl);
     }
     
     return 0;

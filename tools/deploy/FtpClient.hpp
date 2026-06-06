@@ -27,6 +27,7 @@ class FtpClient {
     bool secure;
     std::string root;
 
+public:
     std::string execCommand(const std::string& cmd, bool& success) {
         std::array<char, 128> buffer;
         std::string result;
@@ -43,7 +44,6 @@ class FtpClient {
         return result;
     }
 
-public:
     FtpClient(const std::string& h, int p, const std::string& u, const std::string& pwd, const std::string& r, bool sec) 
         : host(h), port(p), user(u), pass(pwd), root(r), secure(sec) {
         if (!root.empty() && root.back() != '/') {
@@ -119,6 +119,22 @@ public:
             std::this_thread::sleep_for(std::chrono::milliseconds(2000));
         }
         return false;
+    }
+
+    bool upload(const std::string& local, const std::string& remote) {
+        std::string cmd = "curl.exe -sS --ftp-create-dirs -T \"" + local + "\" \"" + getBaseUrl() + remote + "\" " + getAuthArg() + getSecureArg();
+        bool success;
+        std::string output = execCommand(cmd, success);
+        if (!success) std::cerr << "Upload failed: " << output << "\n";
+        return success;
+    }
+
+    bool download(const std::string& remote, const std::string& local) {
+        std::string cmd = "curl.exe -sS -o \"" + local + "\" \"" + getBaseUrl() + remote + "\" " + getAuthArg() + getSecureArg();
+        bool success;
+        std::string output = execCommand(cmd, success);
+        if (!success) std::cerr << "Download failed: " << output << "\n";
+        return success;
     }
 
     bool deleteFile(const std::string& remotePath) {
