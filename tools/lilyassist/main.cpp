@@ -75,12 +75,12 @@ void doWipe(FtpClient& ftp, const std::string& appUrl) {
         "}\n"
         "echo 'SUCCESS';\n";
     
-    std::ofstream aout(".lily_wipe_agent.php"); aout << agent; aout.close();
+    std::ofstream aout("lily_wipe_agent.php"); aout << agent; aout.close();
 
-    if (ftp.upload(".lily_wipe_agent.php", "public/.lily_wipe_agent.php")) {
+    if (ftp.upload("lily_wipe_agent.php", "public/lily_wipe_agent.php")) {
         std::cout << "Triggering instantaneous remote wipe...\n";
         bool succ;
-        std::string out = ftp.execCommand("curl.exe -sS \"" + appUrl + "/.lily_wipe_agent.php\"", succ);
+        std::string out = ftp.execCommand("curl.exe -sS \"" + appUrl + "/lily_wipe_agent.php\"", succ);
         if (out.find("SUCCESS") != std::string::npos) {
             std::cout << "Server root wiped completely!\n";
             fs::remove(".lily_sync_state.json");
@@ -90,7 +90,7 @@ void doWipe(FtpClient& ftp, const std::string& appUrl) {
     } else {
         std::cerr << "Failed to upload wipe agent.\n";
     }
-    fs::remove(".lily_wipe_agent.php");
+    fs::remove("lily_wipe_agent.php");
 }
 
 void doPush(FtpClient& ftp, State& state, bool force, int concurrency, const std::string& appUrl) {
@@ -138,28 +138,31 @@ void doPush(FtpClient& ftp, State& state, bool force, int concurrency, const std
             std::cout << "Uploading payload via FTP...\n";
             if (ftp.upload(".lily_payload.zip", ".lily_payload.zip")) {
                 std::string agent = "<?php\n"
+                    "$root = realpath(__DIR__ . '/../');\n"
                     "$z = new ZipArchive;\n"
-                    "if ($z->open(__DIR__ . '/../.lily_payload.zip') === TRUE) {\n"
-                    "    $z->extractTo(__DIR__ . '/../'); $z->close();\n"
-                    "    @unlink(__DIR__ . '/../.lily_payload.zip');\n"
-                    "    @unlink(__FILE__);\n"
+                    "if ($z->open($root . '/.lily_payload.zip') === TRUE) {\n"
+                    "    $z->extractTo($root . '/'); $z->close();\n"
+                    "    unlink($root . '/.lily_payload.zip');\n"
+                    "    unlink(__FILE__);\n"
                     "    echo 'SUCCESS';\n"
                     "} else { echo 'FAILED'; }\n";
-                std::ofstream aout(".lily_agent.php"); aout << agent; aout.close();
+                std::ofstream aout("lily_agent.php"); aout << agent; aout.close();
                 
-                std::cout << "Uploading deployment agent...\n";
-                if (ftp.upload(".lily_agent.php", "public/.lily_agent.php")) {
+                std::cout << "Uploading agent script...\n";
+                if (ftp.upload("lily_agent.php", "public/lily_agent.php")) {
                     std::cout << "Triggering instantaneous Zip Drop Agent...\n";
                     bool triggerSucc;
-                    std::string out = ftp.execCommand("curl.exe -sS \"" + appUrl + "/.lily_agent.php\"", triggerSucc);
+                    std::string out = ftp.execCommand("curl.exe -sS \"" + appUrl + "/lily_agent.php\"", triggerSucc);
                     if (out.find("SUCCESS") != std::string::npos) {
                         std::cout << "Zip Drop Deployment Complete! " << filesToUpload.size() << " files extracted on server.\n";
                         for (const auto& kv : newState) state.set(kv.first, kv.second);
                     } else {
                         std::cerr << "Zip Drop Agent failed: " << out << "\n";
                     }
+                } else {
+                    std::cerr << "Failed to upload agent script.\n";
                 }
-                fs::remove(".lily_agent.php");
+                fs::remove("lily_agent.php");
             }
             fs::remove(".lily_payload.zip");
         } else {
@@ -190,8 +193,6 @@ void doPush(FtpClient& ftp, State& state, bool force, int concurrency, const std
                     }
                 });
             }
-            
-            // Wait for thread pool to finish
         }
     }
 
@@ -213,9 +214,6 @@ void doPush(FtpClient& ftp, State& state, bool force, int concurrency, const std
     }
     
     // Save to State object
-    state.getAll(); // dummy call just to prevent warning if I was going to use it
-    
-    // clear and set everything new
     auto oldStateCopy = state.getAll();
     for (const auto& [k,v] : oldStateCopy) state.remove(k);
     for (const auto& [file, hash] : newState) state.set(file, hash);
@@ -313,26 +311,30 @@ void doBackup(FtpClient& ftp, const std::string& appUrl) {
         "        }\n"
         "    }\n"
         "    $z->close();\n"
-        "    @unlink(__FILE__);\n"
-        "    echo 'SUCCESS';\n"
-        "} else { echo 'FAILED'; }\n";
+        "}\n"
+        "unlink(__FILE__);\n"
+        "echo 'SUCCESS';\n";
         
-    std::ofstream aout(".lily_backup_agent.php"); aout << agent; aout.close();
-    if (ftp.upload(".lily_backup_agent.php", "public/.lily_backup_agent.php")) {
+    std::ofstream aout("lily_backup_agent.php"); aout << agent; aout.close();
+    if (ftp.upload("lily_backup_agent.php", "public/lily_backup_agent.php")) {
         std::cout << "Triggering high-speed remote backup...\n";
         bool succ;
-        std::string out = ftp.execCommand("curl.exe -sS \"" + appUrl + "/.lily_backup_agent.php\"", succ);
+        std::string out = ftp.execCommand("curl.exe -sS \"" + appUrl + "/lily_backup_agent.php\"", succ);
         if (out.find("SUCCESS") != std::string::npos) {
             std::cout << "Downloading server_backup.zip...\n";
             if (ftp.download("server_backup.zip", "server_backup.zip")) {
-                std::cout << "Backup downloaded successfully to server_backup.zip!\n";
+                std::cout << "Backup downloaded to server_backup.zip successfully!\n";
                 ftp.deleteFile("server_backup.zip");
+            } else {
+                std::cerr << "Failed to download backup.\n";
             }
         } else {
             std::cerr << "Backup agent failed: " << out << "\n";
         }
+    } else {
+        std::cerr << "Failed to upload backup agent.\n";
     }
-    fs::remove(".lily_backup_agent.php");
+    fs::remove("lily_backup_agent.php");
 }
 
 int main(int argc, char* argv[]) {
