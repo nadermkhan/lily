@@ -67,7 +67,7 @@ class Request
         return $this->attributes[$key] ?? $default;
     }
 
-    public function json(string $key = null, mixed $default = null): mixed
+    public function json(?string $key = null, mixed $default = null): mixed
     {
         // Cache the decoded json payload so we only read php://input once
         if (!isset($this->attributes['_json_payload'])) {
