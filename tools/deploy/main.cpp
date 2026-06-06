@@ -51,6 +51,7 @@ void doPush(FtpClient& ftp, State& state, bool force, int concurrency) {
     std::unordered_map<std::string, std::string> newState;
     
     std::atomic<int> uploadedCount = 0;
+    std::mutex stateMutex;
     std::vector<std::string> filesToUpload;
 
     for (const auto& file : localFiles) {
