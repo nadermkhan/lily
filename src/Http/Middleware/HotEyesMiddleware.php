@@ -20,7 +20,7 @@ class HotEyesMiddleware
         $response = $next($request);
 
         // Inject tracking script into HTML responses
-        $contentType = $response->headers['Content-Type'] ?? 'text/html';
+        $contentType = $response->getHeader('Content-Type', 'text/html');
         if (strpos($contentType, 'text/html') !== false) {
             $content = $response->getContent();
             

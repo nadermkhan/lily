@@ -16,6 +16,11 @@ class Response
         return $this;
     }
 
+    public function getContent(): string
+    {
+        return $this->content;
+    }
+
     public function setStatusCode(int $statusCode): self
     {
         $this->statusCode = $statusCode;
@@ -26,6 +31,11 @@ class Response
     {
         $this->headers[$name] = $value;
         return $this;
+    }
+
+    public function getHeader(string $name, ?string $default = null): ?string
+    {
+        return $this->headers[$name] ?? $default;
     }
 
     public function send(): void
