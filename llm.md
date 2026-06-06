@@ -147,6 +147,7 @@ Lily natively supports A/B testing via `Lily\Testing\ExperimentManager` and `Exp
 Run `php lily <command>` from the project root.
 - `php lily serve` - Starts dev server.
 - `php lily config:generate` - Generates `.htaccess`, `nginx.conf`, `web.config` in `public/`.
+- `php lily env:generate` - Scaffolds `.env` and generates a secure `APP_KEY`.
 - `php lily make:controller Name` - Scaffolds a Controller.
 - `php lily queue:work` - Starts the background job queue worker.
 - `php lily tinker` - Starts an interactive PHP REPL shell.

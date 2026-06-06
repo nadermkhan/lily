@@ -65,12 +65,18 @@ switch ($commandName) {
         $command->execute($args);
         break;
 
+    case 'env:generate':
+        $command = new \Lily\Console\Commands\EnvGenerateCommand();
+        $command->execute($args);
+        break;
+
     case 'help':
     default:
         echo "Available commands:\n";
         echo "  migrate          Run database migrations\n";
         echo "  migrate:diff     Auto-diff models against DB and generate migration\n";
         echo "  config:generate  Generate web server configuration files\n";
+        echo "  env:generate     Scaffold .env file and generate secure APP_KEY\n";
         echo "  cache:clear      Clear application cache\n";
         echo "  push             Push local project files to FTP server\n";
         echo "  pull             Pull remote project files from FTP server\n";
