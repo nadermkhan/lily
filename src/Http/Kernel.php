@@ -9,7 +9,11 @@ class Kernel
 {
     protected Application $app;
     protected Router $router;
-    protected array $middleware = [];
+    protected array $middleware = [
+        \Lily\Http\Middleware\RateLimitMiddleware::class,
+        \Lily\Http\Middleware\HotReloadMiddleware::class,
+        \Lily\Http\Middleware\HotEyesMiddleware::class,
+    ];
 
     public function __construct(Application $app, Router $router)
     {

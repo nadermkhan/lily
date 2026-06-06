@@ -45,14 +45,38 @@ switch ($commandName) {
         $command->execute($args);
         break;
 
+    case 'queue:work':
+        $command = new \Lily\Console\Commands\QueueWorkCommand();
+        $command->execute($args);
+        break;
+
+    case 'tinker':
+        $command = new \Lily\Console\Commands\TinkerCommand();
+        $command->execute($args);
+        break;
+
+    case 'migrate:diff':
+        $command = new \Lily\Console\Commands\MigrateDiffCommand();
+        $command->execute($args);
+        break;
+
+    case 'bolt:compile':
+        $command = new \Lily\Console\Commands\BoltCompileCommand();
+        $command->execute($args);
+        break;
+
     case 'help':
     default:
         echo "Available commands:\n";
         echo "  migrate          Run database migrations\n";
+        echo "  migrate:diff     Auto-diff models against DB and generate migration\n";
         echo "  config:generate  Generate web server configuration files\n";
         echo "  cache:clear      Clear application cache\n";
         echo "  push             Push local project files to FTP server\n";
         echo "  pull             Pull remote project files from FTP server\n";
+        echo "  queue:work       Start the background job queue worker\n";
+        echo "  tinker           Start interactive PHP REPL\n";
+        echo "  bolt:compile     Manually recompile Bolt tokens cache\n";
         break;
 }
 
