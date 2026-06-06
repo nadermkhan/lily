@@ -89,7 +89,6 @@ class HomeController {
         
         // Other common response types:
         // return Response::redirect('/dashboard');
-        // return Response::view('home', ['user' => 'John']); // Loads resources/views/home.php
         // return Response::download('path/to/file.pdf');
     }
 }

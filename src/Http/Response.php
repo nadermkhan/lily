@@ -53,23 +53,6 @@ class Response
         return new self('', $statusCode, ['Location' => $url]);
     }
 
-    public static function view(string $viewPath, array $data = [], int $statusCode = 200): self
-    {
-        $path = dirname(__DIR__, 3) . '/resources/views/' . str_replace('.', '/', $viewPath) . '.php';
-        
-        if (!file_exists($path)) {
-            throw new \RuntimeException("View file not found: {$path}");
-        }
-
-        extract($data);
-        
-        ob_start();
-        require $path;
-        $content = ob_get_clean();
-
-        return new self($content, $statusCode, ['Content-Type' => 'text/html']);
-    }
-
     public static function download(string $filePath, ?string $filename = null): self
     {
         if (!file_exists($filePath)) {
