@@ -44,30 +44,53 @@ std::vector<std::string> scanLocalDirectory(const std::string& dir) {
     return files;
 }
 
-void doFormat() {
-    std::cout << "Emptifying source code (Minification)...\n";
-    std::string script = "<?php\n"
-        "function formatDir($dir) {\n"
-        "    foreach (scandir($dir) as $f) {\n"
-        "        if ($f === '.' || $f === '..') continue;\n"
-        "        $path = $dir . '/' . $f;\n"
-        "        if (is_dir($path)) {\n"
-        "            if ($f !== 'vendor' && $f !== '.git') formatDir($path);\n"
-        "        } elseif (pathinfo($path, PATHINFO_EXTENSION) === 'php') {\n"
-        "            echo 'Emptifying: ' . $path . \"\\n\";\n"
-        "            file_put_contents($path, php_strip_whitespace($path));\n"
+void doWipe(FtpClient& ftp, const std::string& appUrl) {
+    if (appUrl.empty()) {
+        std::cerr << "Error: APP_URL must be set in .env for high-speed remote wipe.\n";
+        return;
+    }
+    std::cout << "Uploading wipe agent...\n";
+    std::string agent = "<?php\n"
+        "$root = realpath(__DIR__ . '/../');\n"
+        "function rrmdir($dir) {\n"
+        "    if (is_dir($dir)) {\n"
+        "        $objects = scandir($dir);\n"
+        "        foreach ($objects as $obj) {\n"
+        "            if ($obj != '.' && $obj != '..') {\n"
+        "                if (is_dir($dir. DIRECTORY_SEPARATOR .$obj) && !is_link($dir.'/'.$obj))\n"
+        "                    rrmdir($dir. DIRECTORY_SEPARATOR .$obj);\n"
+        "                else\n"
+        "                    @unlink($dir. DIRECTORY_SEPARATOR .$obj);\n"
+        "            }\n"
         "        }\n"
+        "        @rmdir($dir);\n"
         "    }\n"
         "}\n"
-        "formatDir('.');\n";
+        "foreach(scandir($root) as $item) {\n"
+        "    if ($item != '.' && $item != '..') {\n"
+        "        $path = $root . '/' . $item;\n"
+        "        if (is_dir($path)) rrmdir($path);\n"
+        "        else @unlink($path);\n"
+        "    }\n"
+        "}\n"
+        "echo 'SUCCESS';\n";
     
-    std::ofstream out(".lily_formatter.php");
-    out << script;
-    out.close();
+    std::ofstream aout(".lily_wipe_agent.php"); aout << agent; aout.close();
 
-    system("php .lily_formatter.php");
-    fs::remove(".lily_formatter.php");
-    std::cout << "Emptification complete!\n";
+    if (ftp.upload(".lily_wipe_agent.php", "public/.lily_wipe_agent.php")) {
+        std::cout << "Triggering instantaneous remote wipe...\n";
+        bool succ;
+        std::string out = ftp.execCommand("curl.exe -sS \"" + appUrl + "/.lily_wipe_agent.php\"", succ);
+        if (out.find("SUCCESS") != std::string::npos) {
+            std::cout << "Server root wiped completely!\n";
+            fs::remove(".lily_sync_state.json");
+        } else {
+            std::cerr << "Wipe agent failed: " << out << "\n";
+        }
+    } else {
+        std::cerr << "Failed to upload wipe agent.\n";
+    }
+    fs::remove(".lily_wipe_agent.php");
 }
 
 void doPush(FtpClient& ftp, State& state, bool force, int concurrency, const std::string& appUrl) {
@@ -314,7 +337,7 @@ void doBackup(FtpClient& ftp, const std::string& appUrl) {
 
 int main(int argc, char* argv[]) {
     if (argc < 2) {
-        std::cerr << "Usage: lily-deploy <push|pull|format|backup> [-f|--force]\n";
+        std::cerr << "Usage: lilyassist <push|pull|backup|wipe> [-f|--force]\n";
         return 1;
     }
     
@@ -325,14 +348,9 @@ int main(int argc, char* argv[]) {
         if (arg == "-f" || arg == "--force") force = true;
     }
     
-    if (command != "push" && command != "pull" && command != "format" && command != "backup") {
-        std::cerr << "Invalid command. Use 'push', 'pull', 'format', or 'backup'.\n";
+    if (command != "push" && command != "pull" && command != "backup" && command != "wipe") {
+        std::cerr << "Invalid command. Use 'push', 'pull', 'backup', or 'wipe'.\n";
         return 1;
-    }
-
-    if (command == "format") {
-        doFormat();
-        return 0;
     }
     
     std::string envPath = "";
@@ -396,6 +414,8 @@ int main(int argc, char* argv[]) {
         doPull(ftp, state, force, concurrency);
     } else if (command == "backup") {
         doBackup(ftp, appUrl);
+    } else if (command == "wipe") {
+        doWipe(ftp, appUrl);
     }
     
     return 0;

@@ -35,7 +35,7 @@ switch ($commandName) {
 
     case 'push':
     case 'pull':
-    case 'format':
+    case 'wipe':
     case 'backup':
         $exe = __DIR__ . '/lilyassist.exe';
         if (!file_exists($exe)) {
@@ -103,7 +103,7 @@ switch ($commandName) {
         echo "    \033[36mbolt:compile\033[0m     Compile Bolt API tokens into high-speed OPcache\n";
         echo "    \033[36mpush\033[0m             Push local project files to FTP server (via LilyAssist)\n";
         echo "    \033[36mpull\033[0m             Pull remote project files from FTP server (via LilyAssist)\n";
-        echo "    \033[36mformat\033[0m           Emptify source code / minify PHP files (via LilyAssist)\n";
+        echo "    \033[36mwipe\033[0m             Completely wipe and empty the remote server directory (via LilyAssist)\n";
         echo "    \033[36mbackup\033[0m           Backup the remote server root to a local zip (via LilyAssist)\n";
         
         echo "\n";
