@@ -135,6 +135,11 @@ Run `php lily <command>` from the project root.
 - `php lily serve` - Starts dev server.
 - `php lily config:generate` - Generates `.htaccess`, `nginx.conf`, `web.config` in `public/`.
 - `php lily make:controller Name` - Scaffolds a Controller.
+- `php lily queue:work` - Starts the background job queue worker.
+- `php lily tinker` - Starts an interactive PHP REPL shell.
+- `php lily migrate:diff` - Auto-diff models against the SQLite DB and generate a migration.
+- `php lily bolt:compile` - Manually compile the OPcache flat-file for Bolt API tokens.
+- `php lily push` / `php lily pull` - Sync files via FTP (development mode only).
 
 ## LLM Directive
 When writing code for Lily:

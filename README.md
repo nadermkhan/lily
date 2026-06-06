@@ -23,6 +23,11 @@ php lily serve
 - **Strict HTTP Abstraction**: Isolation of all superglobals (`$_GET`, `$_POST`, etc.) into robust `Request` and `Response` objects.
 - **Middleware Pipeline**: Onion-architecture HTTP Kernel pipeline for filtering requests.
 - **Stems**: An elegant, native alternative to Facades, allowing static-like access to DI container instances.
+- **Zero-Dependency Job Queue**: A native, asynchronous, file-based job queue worker (`php lily queue:work`).
+- **Bolt Authentication**: A blisteringly fast API Authentication engine (like Laravel Sanctum) that uses OPcache flat-file arrays for zero-DB token verification.
+- **HotEyes Telemetry**: An advanced, stealth client-side tracking and anomaly detection engine that intercepts VPN/Proxy attacks and Hardware-Bound Session hijacking.
+- **Database Schema Auto-Diffing**: Define schema via PHP 8 `#[Column]` attributes, and let `php lily migrate:diff` automatically compare your models to your SQLite database and generate the migration files.
+- **SSE Hot-Reload Dev Server**: Instantly refreshes your browser when you save any file during development.
 
 ## Directory Structure
 - `app/` - Application logic (Controllers, Models, Middleware, Providers).
