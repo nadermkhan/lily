@@ -10,7 +10,7 @@ class EnvGenerateCommand
         $envPath = $basePath . '/.env';
         $examplePath = $basePath . '/.env.example';
 
-        echo "Initializing Lily Environment...\n";
+        echo "\n  \033[35m✨ Initializing Lily Environment...\033[0m\n\n";
 
         // Generate a secure 256-bit base64 encoded key
         $key = 'base64:' . base64_encode(random_bytes(32));
@@ -44,25 +44,25 @@ FTP_SSL=true
 ENV;
 
         if (file_exists($envPath)) {
-            // If .env already exists, just update the APP_KEY if it's missing or prompt
             $currentEnv = file_get_contents($envPath);
             if (strpos($currentEnv, 'APP_KEY=') === false) {
                 file_put_contents($envPath, "\nAPP_KEY={$key}\n", FILE_APPEND);
-                echo "Added new APP_KEY to existing .env file.\n";
+                echo "  \033[32m[✓] Added new APP_KEY to existing .env file.\033[0m\n";
             } else {
-                echo "Notice: .env file already exists. If you want to regenerate, please delete it first.\n";
+                echo "  \033[33m[!] Notice: .env file already exists.\033[0m\n      Delete it first to regenerate completely.\n";
             }
         } else {
             file_put_contents($envPath, $template);
-            echo "Successfully generated new .env file!\n";
-            echo "Application key [{$key}] set successfully.\n";
+            echo "  \033[32m[✓] Successfully generated new .env file!\033[0m\n";
+            echo "  \033[32m[✓] Application key [\033[36m{$key}\033[32m] set successfully.\033[0m\n";
         }
 
-        // Create .env.example if it doesn't exist to ensure repo consistency
         if (!file_exists($examplePath)) {
             $exampleTemplate = str_replace($key, '', $template);
             file_put_contents($examplePath, $exampleTemplate);
-            echo "Created .env.example template.\n";
+            echo "  \033[32m[✓] Created .env.example template.\033[0m\n";
         }
+        
+        echo "\n";
     }
 }

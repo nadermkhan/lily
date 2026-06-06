@@ -10,8 +10,6 @@ $app = new Application(__DIR__);
 $commandName = $argv[1] ?? 'help';
 $args = array_slice($argv, 2);
 
-echo "Lily Framework Console\n-----------------------\n";
-
 switch ($commandName) {
     case 'serve':
         $port = $args[0] ?? 8000;
@@ -72,17 +70,36 @@ switch ($commandName) {
 
     case 'help':
     default:
-        echo "Available commands:\n";
-        echo "  migrate          Run database migrations\n";
-        echo "  migrate:diff     Auto-diff models against DB and generate migration\n";
-        echo "  config:generate  Generate web server configuration files\n";
-        echo "  env:generate     Scaffold .env file and generate secure APP_KEY\n";
-        echo "  cache:clear      Clear application cache\n";
-        echo "  push             Push local project files to FTP server\n";
-        echo "  pull             Pull remote project files from FTP server\n";
-        echo "  queue:work       Start the background job queue worker\n";
-        echo "  tinker           Start interactive PHP REPL\n";
-        echo "  bolt:compile     Manually recompile Bolt tokens cache\n";
+        $logo = "
+  \033[38;5;213m🌸 L I L Y\033[0m
+  \033[90mThe Zero-Dependency Framework\033[0m
+";
+        echo $logo . "\n";
+        echo "\033[33mUsage:\033[0m\n";
+        echo "  command [options] [arguments]\n\n";
+        echo "\033[33mAvailable commands:\033[0m\n";
+        
+        echo "\033[32m  Database\033[0m\n";
+        echo "    \033[36mmigrate\033[0m          Run database migrations\n";
+        echo "    \033[36mmigrate:diff\033[0m     Auto-diff models against DB and generate migration\n";
+        
+        echo "\033[32m  Setup & Scaffolding\033[0m\n";
+        echo "    \033[36mconfig:generate\033[0m  Generate web server configuration files\n";
+        echo "    \033[36menv:generate\033[0m     Scaffold .env file and generate secure APP_KEY\n";
+        echo "    \033[36mmake:controller\033[0m  Create a new controller class\n";
+        
+        echo "\033[32m  System\033[0m\n";
+        echo "    \033[36mserve\033[0m            Start the development server with hot-reload\n";
+        echo "    \033[36mtinker\033[0m           Start an interactive PHP REPL shell\n";
+        echo "    \033[36mqueue:work\033[0m       Start the background job queue worker\n";
+        echo "    \033[36mcache:clear\033[0m      Clear application cache\n";
+        
+        echo "\033[32m  Deployment & Auth\033[0m\n";
+        echo "    \033[36mbolt:compile\033[0m     Compile Bolt API tokens into high-speed OPcache\n";
+        echo "    \033[36mpush\033[0m             Push local project files to FTP server\n";
+        echo "    \033[36mpull\033[0m             Pull remote project files from FTP server\n";
+        
+        echo "\n";
         break;
 }
 
