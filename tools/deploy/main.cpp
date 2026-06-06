@@ -174,9 +174,27 @@ int main(int argc, char* argv[]) {
         return 1;
     }
     
-    Config config("../../.env"); // From tools/deploy we need to find .env! Wait, it will be executed from project root normally!
-    // We should look for .env in current directory.
-    Config env(".env");
+    std::string envPath = "";
+    fs::path current = fs::current_path();
+    while (true) {
+        if (fs::exists(current / ".env")) {
+            envPath = (current / ".env").string();
+            fs::current_path(current); // Change working directory to project root
+            break;
+        }
+        if (current.has_parent_path() && current != current.parent_path()) {
+            current = current.parent_path();
+        } else {
+            break;
+        }
+    }
+
+    if (envPath.empty()) {
+        std::cout << "Error: Could not find .env file in current or parent directories.\n";
+        return 1;
+    }
+    
+    Config env(envPath);
     
     if (env.get("APP_ENV", "development") == "production") {
         std::cout << "Error: " << (command == "push" ? "Push" : "Pull") << " is not allowed in production mode.\n";
@@ -191,7 +209,7 @@ int main(int argc, char* argv[]) {
     try { port = std::stoi(portStr); } catch(...) {}
     
     std::string root = env.get("FTP_ROOT", "/");
-    bool secure = env.getBool("FTP_SECURE", true);
+    bool secure = env.getBool("FTP_SECURE", env.getBool("FTP_SSL", true));
     
     if (host.empty() || user.empty() || pass.empty()) {
         std::cout << "Error: FTP credentials missing in .env\n";
