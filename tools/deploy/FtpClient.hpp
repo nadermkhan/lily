@@ -8,6 +8,8 @@
 #include <stdexcept>
 #include <stdio.h>
 #include <mutex>
+#include <thread>
+#include <chrono>
 
 inline std::mutex g_printMutex;
 
@@ -68,25 +70,43 @@ public:
     bool upload(const std::string& localPath, const std::string& remotePath) {
         std::string url = getBaseUrl() + remotePath;
         std::string cmd = "curl.exe -sS --ftp-create-dirs -T \"" + localPath + "\" \"" + url + "\"" + getAuthArg() + getSecureArg();
-        bool success;
-        std::string output = execCommand(cmd, success);
-        if (!success) {
-            std::lock_guard<std::mutex> lock(g_printMutex);
-            std::cerr << "Upload failed for " << localPath << ": " << output << "\n";
+        
+        int retries = 3;
+        while (retries > 0) {
+            bool success;
+            std::string output = execCommand(cmd, success);
+            if (success) return true;
+            
+            retries--;
+            if (retries == 0) {
+                std::lock_guard<std::mutex> lock(g_printMutex);
+                std::cerr << "Upload failed for " << localPath << ": " << output << "\n";
+                return false;
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(2000));
         }
-        return success;
+        return false;
     }
 
     bool download(const std::string& remotePath, const std::string& localPath) {
         std::string url = getBaseUrl() + remotePath;
         std::string cmd = "curl.exe -sS -o \"" + localPath + "\" \"" + url + "\"" + getAuthArg() + getSecureArg();
-        bool success;
-        std::string output = execCommand(cmd, success);
-        if (!success) {
-            std::lock_guard<std::mutex> lock(g_printMutex);
-            std::cerr << "Download failed for " << remotePath << ": " << output << "\n";
+        
+        int retries = 3;
+        while (retries > 0) {
+            bool success;
+            std::string output = execCommand(cmd, success);
+            if (success) return true;
+            
+            retries--;
+            if (retries == 0) {
+                std::lock_guard<std::mutex> lock(g_printMutex);
+                std::cerr << "Download failed for " << remotePath << ": " << output << "\n";
+                return false;
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(2000));
         }
-        return success;
+        return false;
     }
 
     bool deleteFile(const std::string& remotePath) {

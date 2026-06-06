@@ -44,7 +44,7 @@ std::vector<std::string> scanLocalDirectory(const std::string& dir) {
     return files;
 }
 
-void doPush(FtpClient& ftp, State& state, bool force) {
+void doPush(FtpClient& ftp, State& state, bool force, int concurrency) {
     std::cout << "Scanning local files...\n";
     auto localFiles = scanLocalDirectory(".");
     std::unordered_map<std::string, std::string> previousState = force ? std::unordered_map<std::string, std::string>() : state.getAll();
@@ -54,7 +54,7 @@ void doPush(FtpClient& ftp, State& state, bool force) {
     std::mutex stateMutex;
 
     {
-        ThreadPool pool(8);
+        ThreadPool pool(concurrency);
         for (const auto& file : localFiles) {
             std::string hash = Hash::sha1_file(file);
             
@@ -144,12 +144,12 @@ void downloadDirectory(FtpClient& ftp, const std::string& remoteDir, const std::
     }
 }
 
-void doPull(FtpClient& ftp, State& state, bool force) {
+void doPull(FtpClient& ftp, State& state, bool force, int concurrency) {
     std::cout << "Fetching remote files...\n";
     downloadedCount = 0;
     std::mutex mtx;
     {
-        ThreadPool pool(8);
+        ThreadPool pool(concurrency);
         downloadDirectory(ftp, "", ".", force, pool, state, mtx);
     }
     
@@ -214,6 +214,11 @@ int main(int argc, char* argv[]) {
     int port = 21;
     try { port = std::stoi(portStr); } catch(...) {}
     
+    int concurrency = 2;
+    std::string convStr = env.get("FTP_CONCURRENCY", "2");
+    try { concurrency = std::stoi(convStr); } catch(...) {}
+    if (concurrency < 1) concurrency = 1;
+    
     std::string root = env.get("FTP_ROOT", "/");
     bool secure = env.getBool("FTP_SECURE", env.getBool("FTP_SSL", true));
     
@@ -226,9 +231,9 @@ int main(int argc, char* argv[]) {
     State state(".lily_sync_state.json");
     
     if (command == "push") {
-        doPush(ftp, state, force);
+        doPush(ftp, state, force, concurrency);
     } else {
-        doPull(ftp, state, force);
+        doPull(ftp, state, force, concurrency);
     }
     
     return 0;
