@@ -65,7 +65,10 @@ void doPush(FtpClient& ftp, State& state, bool force) {
             
             if (force || previousState.find(file) == previousState.end() || previousState.at(file) != hash) {
                 pool.enqueue([&ftp, file, hash, &stateMutex, &newState, &uploadedCount]() {
-                    std::cout << "Uploading: " << file << "...\n";
+                    {
+                        std::lock_guard<std::mutex> lock(g_printMutex);
+                        std::cout << "Uploading: " << file << "...\n";
+                    }
                     if (ftp.upload(file, file)) {
                         uploadedCount++;
                     } else {
@@ -129,7 +132,10 @@ void downloadDirectory(FtpClient& ftp, const std::string& remoteDir, const std::
             }
             
             pool.enqueue([&ftp, nextRemotePath, localPath]() {
-                std::cout << "Downloading: " << localPath << "...\n";
+                {
+                    std::lock_guard<std::mutex> lock(g_printMutex);
+                    std::cout << "Downloading: " << localPath << "...\n";
+                }
                 if (ftp.download(nextRemotePath, localPath)) {
                     downloadedCount++;
                 }

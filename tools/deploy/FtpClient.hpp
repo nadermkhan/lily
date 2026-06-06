@@ -7,6 +7,9 @@
 #include <memory>
 #include <stdexcept>
 #include <stdio.h>
+#include <mutex>
+
+inline std::mutex g_printMutex;
 
 struct RemoteFile {
     std::string name;
@@ -50,7 +53,8 @@ public:
     }
 
     std::string getBaseUrl() const {
-        return (secure ? "ftps://" : "ftp://") + host + ":" + std::to_string(port) + root;
+        std::string scheme = (secure && port == 990) ? "ftps://" : "ftp://";
+        return scheme + host + ":" + std::to_string(port) + root;
     }
 
     std::string getAuthArg() const {
@@ -63,10 +67,11 @@ public:
 
     bool upload(const std::string& localPath, const std::string& remotePath) {
         std::string url = getBaseUrl() + remotePath;
-        std::string cmd = "curl.exe -s --ftp-create-dirs -T \"" + localPath + "\" \"" + url + "\"" + getAuthArg() + getSecureArg();
+        std::string cmd = "curl.exe -sS --ftp-create-dirs -T \"" + localPath + "\" \"" + url + "\"" + getAuthArg() + getSecureArg();
         bool success;
         std::string output = execCommand(cmd, success);
         if (!success) {
+            std::lock_guard<std::mutex> lock(g_printMutex);
             std::cerr << "Upload failed for " << localPath << ": " << output << "\n";
         }
         return success;
@@ -74,10 +79,11 @@ public:
 
     bool download(const std::string& remotePath, const std::string& localPath) {
         std::string url = getBaseUrl() + remotePath;
-        std::string cmd = "curl.exe -s -o \"" + localPath + "\" \"" + url + "\"" + getAuthArg() + getSecureArg();
+        std::string cmd = "curl.exe -sS -o \"" + localPath + "\" \"" + url + "\"" + getAuthArg() + getSecureArg();
         bool success;
         std::string output = execCommand(cmd, success);
         if (!success) {
+            std::lock_guard<std::mutex> lock(g_printMutex);
             std::cerr << "Download failed for " << remotePath << ": " << output << "\n";
         }
         return success;
@@ -85,7 +91,7 @@ public:
 
     bool deleteFile(const std::string& remotePath) {
         std::string url = getBaseUrl();
-        std::string cmd = "curl.exe -s -Q \"-DELE " + root + remotePath + "\" \"" + url + "\"" + getAuthArg() + getSecureArg();
+        std::string cmd = "curl.exe -sS -Q \"-DELE " + root + remotePath + "\" \"" + url + "\"" + getAuthArg() + getSecureArg();
         bool success;
         execCommand(cmd, success);
         return success;
@@ -94,7 +100,7 @@ public:
     std::vector<RemoteFile> listFiles(const std::string& remotePath) {
         std::string url = getBaseUrl() + remotePath;
         if (url.back() != '/') url += "/";
-        std::string cmd = "curl.exe -s \"" + url + "\"" + getAuthArg() + getSecureArg();
+        std::string cmd = "curl.exe -sS \"" + url + "\"" + getAuthArg() + getSecureArg();
         bool success;
         std::string output = execCommand(cmd, success);
         std::vector<RemoteFile> files;
