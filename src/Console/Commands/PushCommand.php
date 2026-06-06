@@ -80,7 +80,8 @@ class PushCommand
             $newState[$file] = $hash;
             
             if (!isset($previousState[$file]) || $previousState[$file] !== $hash) {
-                $remotePath = rtrim($root, '/') . '/' . ltrim($file, './');
+                $cleanFile = str_starts_with($file, './') ? substr($file, 2) : $file;
+                $remotePath = rtrim($root, '/') . '/' . $cleanFile;
                 
                 echo "Uploading: $file...\n";
                 
@@ -97,7 +98,8 @@ class PushCommand
 
         foreach ($previousState as $file => $hash) {
             if (!isset($newState[$file]) && file_exists($file) === false) {
-                $remotePath = rtrim($root, '/') . '/' . ltrim($file, './');
+                $cleanFile = str_starts_with($file, './') ? substr($file, 2) : $file;
+                $remotePath = rtrim($root, '/') . '/' . $cleanFile;
                 echo "Deleting remote: $file...\n";
                 @ftp_delete($conn, $remotePath);
             } elseif (!isset($newState[$file])) {
@@ -150,16 +152,22 @@ class PushCommand
     private function isIgnored(string $path): bool
     {
         $path = str_replace('\\', '/', $path);
+        if (str_starts_with($path, './')) {
+            $path = substr($path, 2);
+        }
         
         foreach ($this->ignoredPaths as $ignored) {
             $ignored = str_replace('\\', '/', $ignored);
+            if (str_starts_with($ignored, './')) {
+                $ignored = substr($ignored, 2);
+            }
             
             if (str_ends_with($ignored, '/')) {
-                if (str_starts_with($path . '/', ltrim($ignored, './'))) {
+                if (str_starts_with($path . '/', $ignored)) {
                     return true;
                 }
             } else {
-                if ($path === ltrim($ignored, './')) {
+                if ($path === $ignored) {
                     return true;
                 }
             }

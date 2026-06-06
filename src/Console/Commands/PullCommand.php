@@ -162,16 +162,22 @@ class PullCommand
     private function isIgnored(string $path): bool
     {
         $path = str_replace('\\', '/', $path);
+        if (str_starts_with($path, './')) {
+            $path = substr($path, 2);
+        }
         
         foreach ($this->ignoredPaths as $ignored) {
             $ignored = str_replace('\\', '/', $ignored);
+            if (str_starts_with($ignored, './')) {
+                $ignored = substr($ignored, 2);
+            }
             
             if (str_ends_with($ignored, '/')) {
-                if (str_starts_with($path . '/', ltrim($ignored, './'))) {
+                if (str_starts_with($path . '/', $ignored)) {
                     return true;
                 }
             } else {
-                if ($path === ltrim($ignored, './')) {
+                if ($path === $ignored) {
                     return true;
                 }
             }
