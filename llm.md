@@ -29,7 +29,7 @@ Stems provide static access to underlying container instances via `__callStatic(
 - Available Stems: `Lily\Support\Stems\Route`
 - Usage: Replace injected variables (like `$router->get()`) with `Route::get()`.
 
-## 5. Routing (`app/routes.php`)
+## 5. Routing (`routes/routes.php`)
 Routing is fluent and supports advanced subdomain matching.
 ```php
 use Lily\Support\Stems\Route;

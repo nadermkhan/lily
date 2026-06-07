@@ -16,7 +16,7 @@ $app->singleton(Router::class, function () {
 });
 
 // Load application routes
-require_once __DIR__ . '/../app/routes.php';
+require_once __DIR__ . '/../routes/routes.php';
 
 // Capture the incoming HTTP request
 $request = Request::capture();

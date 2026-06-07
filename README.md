@@ -36,7 +36,7 @@ php lily serve
 - `tests/` - QA and unit tests.
 
 ## Routing
-Define routes elegantly in `app/routes.php` using the `Route` Stem, which proxies static calls to the underlying Router instance:
+Define routes elegantly in `routes/routes.php` using the `Route` Stem, which proxies static calls to the underlying Router instance:
 ```php
 use Lily\Support\Stems\Route;
 use App\Controllers\HomeController;
