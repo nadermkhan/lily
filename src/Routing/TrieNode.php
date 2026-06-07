@@ -2,31 +2,85 @@
 
 namespace Lily\Routing;
 
+/**
+ * Represents a node in the routing trie.
+ */
 class TrieNode
 {
-    /** @var array<string,TrieNode> Literal segment children. */
+    /**
+     * Literal segment children.
+     * 
+     * @var array<string, TrieNode>
+     */
     public array $children = [];
 
-    /** Dynamic param child (e.g. {id}). */
+    /**
+     * Dynamic param child (e.g. {id}).
+     * 
+     * @var TrieNode|null
+     */
     public ?TrieNode $dynamicChild = null;
-    public ?string   $paramName    = null;
 
-    /** Optional regex constraint applied to the dynamic segment. */
+    /**
+     * The name of the dynamic parameter.
+     * 
+     * @var string|null
+     */
+    public ?string $paramName = null;
+
+    /**
+     * Optional regex constraint applied to the dynamic segment.
+     * 
+     * @var string|null
+     */
     public ?string $paramConstraint = null;
 
-    /** Wildcard child (catch-all, {path*}). Captures the remaining path. */
+    /**
+     * Wildcard child (catch-all, {path*}). Captures the remaining path.
+     * 
+     * @var TrieNode|null
+     */
     public ?TrieNode $wildcardChild = null;
-    public ?string   $wildcardName  = null;
 
-    /** @var array<string,mixed> HTTP method => handler callable/array. */
+    /**
+     * The name of the wildcard parameter.
+     * 
+     * @var string|null
+     */
+    public ?string $wildcardName = null;
+
+    /**
+     * The HTTP method handlers.
+     * 
+     * @var array<string, mixed>
+     */
     public array $handlers = [];
 
-    /** @var array<string,string[]> method => allowed hosts */
+    /**
+     * The allowed hosts per HTTP method.
+     * 
+     * @var array<string, string[]>
+     */
     public array $methodAllowHosts = [];
     
-    /** @var array<string,string[]> method => blocked hosts */
+    /**
+     * The blocked hosts per HTTP method.
+     * 
+     * @var array<string, string[]>
+     */
     public array $methodBlockHosts = [];
 
-    public bool   $isLeaf       = false;
+    /**
+     * Indicates whether this node represents a complete route.
+     * 
+     * @var bool
+     */
+    public bool $isLeaf = false;
+
+    /**
+     * The full route pattern.
+     * 
+     * @var string
+     */
     public string $routePattern = '';
 }

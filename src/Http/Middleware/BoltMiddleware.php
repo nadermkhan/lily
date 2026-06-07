@@ -6,10 +6,21 @@ use Lily\Http\Request;
 use Lily\Http\Response;
 use Lily\Foundation\Application;
 
+/**
+ * Middleware for handling Bolt authentication tokens.
+ */
 class BoltMiddleware
 {
+    /**
+     * The path to the token cache file.
+     *
+     * @var string
+     */
     private string $cacheFile;
 
+    /**
+     * Create a new BoltMiddleware instance.
+     */
     public function __construct()
     {
         $app = Application::getInstance();
@@ -17,6 +28,13 @@ class BoltMiddleware
         $this->cacheFile = $basePath . '/storage/auth/tokens.php';
     }
 
+    /**
+     * Handle the incoming request.
+     *
+     * @param Request $request The incoming request.
+     * @param callable $next The next middleware or handler in the pipeline.
+     * @return Response
+     */
     public function handle(Request $request, callable $next): Response
     {
         $header = $request->server['HTTP_AUTHORIZATION'] ?? '';
@@ -45,6 +63,11 @@ class BoltMiddleware
         return $next($request);
     }
 
+    /**
+     * Generate an unauthorized response.
+     *
+     * @return Response
+     */
     private function unauthorized(): Response
     {
         $response = new Response();

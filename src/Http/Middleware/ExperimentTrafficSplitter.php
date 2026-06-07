@@ -5,10 +5,25 @@ namespace Lily\Http\Middleware;
 use Lily\Http\Request;
 use Lily\Testing\ExperimentManager;
 
+/**
+ * Middleware to split traffic for A/B experiments.
+ */
 class ExperimentTrafficSplitter
 {
+    /**
+     * Create a new ExperimentTrafficSplitter instance.
+     *
+     * @param ExperimentManager $experiments The experiment manager.
+     */
     public function __construct(private ExperimentManager $experiments) {}
 
+    /**
+     * Handle the incoming request.
+     *
+     * @param Request $request The incoming request.
+     * @param \Closure $next The next middleware or handler in the pipeline.
+     * @return mixed The response from the next handler.
+     */
     public function handle(Request $request, \Closure $next)
     {
         $experimentId = 'homepage_cta_test';

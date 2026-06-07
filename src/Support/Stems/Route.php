@@ -5,6 +5,8 @@ namespace Lily\Support\Stems;
 use Lily\Support\Stem;
 
 /**
+ * The Route stem (facade) for registering application routes.
+ * 
  * @method static \Lily\Routing\RouteScope on(string|array $hosts)
  * @method static \Lily\Routing\RouteScope except(string|array $hosts)
  * @method static void get(string $uri, mixed $action)

@@ -6,31 +6,80 @@ use ReflectionClass;
 use ReflectionParameter;
 use Exception;
 
+/**
+ * The dependency injection container.
+ * 
+ * Manages class dependencies and performs dependency injection.
+ */
 class Container
 {
+    /**
+     * The container's shared instances.
+     *
+     * @var array
+     */
     protected array $instances = [];
+
+    /**
+     * The container's bindings.
+     *
+     * @var array
+     */
     protected array $bindings = [];
 
+    /**
+     * Register a shared binding in the container.
+     *
+     * @param string $abstract The abstract type to bind.
+     * @param callable|string|null $concrete The concrete implementation.
+     * @return void
+     */
     public function singleton(string $abstract, callable|string|null $concrete = null): void
     {
         $this->bindings[$abstract] = ['concrete' => $concrete ?? $abstract, 'shared' => true];
     }
 
+    /**
+     * Register a binding with the container.
+     *
+     * @param string $abstract The abstract type to bind.
+     * @param callable|string|null $concrete The concrete implementation.
+     * @return void
+     */
     public function bind(string $abstract, callable|string|null $concrete = null): void
     {
         $this->bindings[$abstract] = ['concrete' => $concrete ?? $abstract, 'shared' => false];
     }
 
+    /**
+     * Register an existing instance as shared in the container.
+     *
+     * @param string $abstract The abstract type to bind.
+     * @param mixed $instance The instance to register.
+     * @return void
+     */
     public function instance(string $abstract, mixed $instance): void
     {
         $this->instances[$abstract] = $instance;
     }
 
+    /**
+     * Resolve the given type from the container.
+     *
+     * @param string $abstract The abstract type to resolve.
+     * @return mixed
+     */
     public function get(string $abstract): mixed
     {
         return $this->resolve($abstract);
     }
 
+    /**
+     * Resolve the given type from the container.
+     *
+     * @param string $abstract The abstract type to resolve.
+     * @return mixed
+     */
     protected function resolve(string $abstract): mixed
     {
         if (isset($this->instances[$abstract])) {
@@ -52,6 +101,13 @@ class Container
         return $object;
     }
 
+    /**
+     * Instantiate a concrete instance of the given type.
+     *
+     * @param string $concrete The concrete type to build.
+     * @return mixed
+     * @throws \Exception
+     */
     protected function build(string $concrete): mixed
     {
         try {
@@ -76,6 +132,13 @@ class Container
         return $reflector->newInstanceArgs($instances);
     }
 
+    /**
+     * Resolve all of the dependencies from the ReflectionParameters.
+     *
+     * @param array $dependencies The dependencies to resolve.
+     * @return array
+     * @throws \Exception
+     */
     protected function resolveDependencies(array $dependencies): array
     {
         $results = [];

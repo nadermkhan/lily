@@ -4,13 +4,31 @@ namespace Lily\Console\Commands;
 
 use Lily\Console\Command;
 
+/**
+ * Class ConfigGenerateCommand
+ *
+ * Command to generate server configuration files.
+ *
+ * @package Lily\Console\Commands
+ */
 class ConfigGenerateCommand extends Command
 {
+    /**
+     * Get the name of the command.
+     *
+     * @return string The command name.
+     */
     public function getName(): string
     {
         return 'config:generate';
     }
 
+    /**
+     * Execute the command to generate configuration files.
+     *
+     * @param array $args The arguments passed to the command.
+     * @return int The exit status code.
+     */
     public function execute(array $args): int
     {
         echo "Generating server configuration files...\n";
@@ -28,6 +46,12 @@ class ConfigGenerateCommand extends Command
         return 0;
     }
 
+    /**
+     * Ensure the .htaccess file exists in the public directory.
+     *
+     * @param string $publicDir The path to the public directory.
+     * @return void
+     */
     private function ensureHtaccess(string $publicDir): void
     {
         $path = $publicDir . '/.htaccess';
@@ -53,6 +77,12 @@ HTACCESS;
         echo "Created .htaccess\n";
     }
 
+    /**
+     * Ensure the nginx configuration snippet exists in the public directory.
+     *
+     * @param string $publicDir The path to the public directory.
+     * @return void
+     */
     private function ensureNginxSnippet(string $publicDir): void
     {
         $path = $publicDir . '/nginx.conf.example';
@@ -76,6 +106,12 @@ NGINX;
         echo "Created nginx.conf.example\n";
     }
 
+    /**
+     * Ensure the web.config file exists in the public directory.
+     *
+     * @param string $publicDir The path to the public directory.
+     * @return void
+     */
     private function ensureWebConfig(string $publicDir): void
     {
         $path = $publicDir . '/web.config';

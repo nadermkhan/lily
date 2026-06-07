@@ -4,8 +4,21 @@ namespace Lily\Console\Commands;
 
 use Lily\Queue\QueueManager;
 
+/**
+ * Class QueueWorkCommand
+ *
+ * Command to start the queue worker and process jobs.
+ *
+ * @package Lily\Console\Commands
+ */
 class QueueWorkCommand
 {
+    /**
+     * Execute the queue worker command.
+     *
+     * @param array $args The arguments passed to the command.
+     * @return void
+     */
     public function execute(array $args): void
     {
         $manager = new QueueManager();

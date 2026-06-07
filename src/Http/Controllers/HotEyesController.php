@@ -5,8 +5,16 @@ namespace Lily\Http\Controllers;
 use Lily\Tracking\HotEyesAnalyzer;
 use Lily\Http\Response;
 
+/**
+ * Controller to handle hot eyes tracking payload.
+ */
 class HotEyesController
 {
+    /**
+     * Handle the incoming request.
+     *
+     * @return Response
+     */
     public function handle(): Response
     {
         $input = file_get_contents('php://input');

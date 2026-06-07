@@ -7,10 +7,23 @@ use Lily\Services\TelegramNotifier;
 use Lily\Support\Env;
 use Lily\Foundation\Application;
 
+/**
+ * Class HotEyesAnalyzer
+ *
+ * Analyzes and stores user tracking footprints for security anomaly detection.
+ */
 class HotEyesAnalyzer
 {
+    /**
+     * @var Db The database instance used to store footprints.
+     */
     private Db $db;
 
+    /**
+     * HotEyesAnalyzer constructor.
+     *
+     * Initializes the database connection and ensures the footprints table exists.
+     */
     public function __construct()
     {
         $app = Application::getInstance();
@@ -20,6 +33,11 @@ class HotEyesAnalyzer
         $this->ensureTableExists();
     }
 
+    /**
+     * Ensures that the hoteyes_footprints table exists in the database.
+     *
+     * @return void
+     */
     private function ensureTableExists(): void
     {
         $this->db->query("
@@ -39,6 +57,14 @@ class HotEyesAnalyzer
         ");
     }
 
+    /**
+     * Analyzes tracking payload and stores the footprint in the database.
+     *
+     * @param array $payload The footprint payload containing hardware and connection info.
+     * @param string $ip The IP address of the client.
+     * @param string|null $userId An optional user ID if the user is authenticated.
+     * @return void
+     */
     public function analyzeAndStore(array $payload, string $ip, ?string $userId = null): void
     {
         // 1. Store footprint
@@ -72,6 +98,14 @@ class HotEyesAnalyzer
         }
     }
 
+    /**
+     * Detects potential VPN or proxy usage based on IP and timezone discrepancies.
+     *
+     * @param string $ip The IP address of the client.
+     * @param string $timezone The timezone reported by the client's browser.
+     * @param string|null $userId An optional user ID if the user is authenticated.
+     * @return void
+     */
     private function detectVpnProxy(string $ip, string $timezone, ?string $userId): void
     {
         // In a real production scenario, you would query an IP-to-Geo database 
@@ -88,6 +122,13 @@ class HotEyesAnalyzer
         }
     }
 
+    /**
+     * Detects potential session hijacking by comparing hardware signatures.
+     *
+     * @param string $userId The user ID to check.
+     * @param string $signature The current hardware signature.
+     * @return void
+     */
     private function detectSessionHijack(string $userId, string $signature): void
     {
         // Get the historical signature for this user
@@ -111,6 +152,12 @@ class HotEyesAnalyzer
         }
     }
 
+    /**
+     * Sends an alert message to administrators.
+     *
+     * @param string $message The alert message.
+     * @return void
+     */
     private function alertAdmin(string $message): void
     {
         $botToken = Env::get('TELEGRAM_BOT_TOKEN');

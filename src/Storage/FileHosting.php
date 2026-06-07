@@ -5,14 +5,36 @@ namespace Lily\Storage;
 use Lily\Support\Env;
 use Lily\Http\Request;
 
+/**
+ * Class FileHosting
+ *
+ * Handles file uploads to local storage or Telegram based on environment configuration.
+ *
+ * @package Lily\Storage
+ */
 class FileHosting
 {
+    /** @var string The configured storage type. */
     private string $storageType;
+
+    /** @var string The directory for local uploads. */
     private string $uploadDir;
+
+    /** @var string|null The Telegram bot token. */
     private ?string $botToken;
+
+    /** @var string|null The Telegram chat ID. */
     private ?string $chatId;
+
+    /** @var Filesystem The filesystem instance. */
     private Filesystem $filesystem;
 
+    /**
+     * FileHosting constructor.
+     *
+     * @param Filesystem $filesystem The filesystem instance.
+     * @param string $uploadDir The directory for local uploads (default 'public/uploads').
+     */
     public function __construct(Filesystem $filesystem, string $uploadDir = 'public/uploads')
     {
         $this->storageType = Env::get('STORAGE', 'local');
@@ -26,6 +48,13 @@ class FileHosting
         }
     }
 
+    /**
+     * Upload a file to the configured storage backend.
+     *
+     * @param string $tmpName The temporary path to the uploaded file.
+     * @param string $filename The original filename.
+     * @return string|false The storage path or file ID on success, false on failure.
+     */
     public function upload(string $tmpName, string $filename): string|false
     {
         if ($this->storageType === 'telegram') {
@@ -35,6 +64,13 @@ class FileHosting
         return $this->uploadToLocal($tmpName, $filename);
     }
 
+    /**
+     * Upload a file to the local filesystem.
+     *
+     * @param string $tmpName The temporary path to the uploaded file.
+     * @param string $filename The original filename.
+     * @return string|false The destination path on success, false on failure.
+     */
     private function uploadToLocal(string $tmpName, string $filename): string|false
     {
         $destination = $this->uploadDir . '/' . uniqid('file_') . '_' . basename($filename);
@@ -44,6 +80,14 @@ class FileHosting
         return false;
     }
 
+    /**
+     * Upload a file to Telegram.
+     *
+     * @param string $tmpName The temporary path to the uploaded file.
+     * @param string $filename The original filename.
+     * @return string|false The Telegram file ID on success, false on failure.
+     * @throws \Exception If Telegram configuration is missing.
+     */
     private function uploadToTelegram(string $tmpName, string $filename): string|false
     {
         if (empty($this->botToken) || empty($this->chatId)) {

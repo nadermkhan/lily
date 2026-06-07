@@ -6,15 +6,38 @@ use Lily\Http\Request;
 use Lily\Http\Response;
 use Throwable;
 
+/**
+ * Handles exceptions and renders appropriate HTTP responses.
+ * 
+ * Provides detailed debug pages in debug mode, or generic error pages otherwise.
+ */
 class ExceptionHandler
 {
+    /**
+     * Whether the application is running in debug mode.
+     *
+     * @var bool
+     */
     private bool $debug;
 
+    /**
+     * Create a new ExceptionHandler instance.
+     *
+     * @param bool $debug If true, detailed error messages are shown.
+     * @return void
+     */
     public function __construct(bool $debug = false)
     {
         $this->debug = $debug;
     }
 
+    /**
+     * Handle an exception and generate an HTTP response.
+     *
+     * @param \Throwable $e The exception to handle.
+     * @param \Lily\Http\Request $request The current request.
+     * @return \Lily\Http\Response
+     */
     public function handle(Throwable $e, Request $request): Response
     {
         $statusCode = $this->isHttpException($e) ? $e->getCode() : 500;
@@ -32,11 +55,23 @@ class ExceptionHandler
         return new Response($content, $statusCode);
     }
 
+    /**
+     * Determine if the exception is an HTTP exception.
+     *
+     * @param \Throwable $e The exception to check.
+     * @return bool
+     */
     private function isHttpException(Throwable $e): bool
     {
         return $e->getCode() >= 400 && $e->getCode() <= 599;
     }
 
+    /**
+     * Render the detailed debug page.
+     *
+     * @param \Throwable $e The exception to render.
+     * @return string
+     */
     private function renderDebugPage(Throwable $e): string
     {
         $frames = [];
@@ -82,6 +117,11 @@ class ExceptionHandler
         return $this->getDebugHtml($payload);
     }
 
+    /**
+     * Get the headers from the current request.
+     *
+     * @return array
+     */
     private function getHeaders(): array
     {
         if (function_exists('getallheaders')) {
@@ -96,6 +136,12 @@ class ExceptionHandler
         return $headers;
     }
 
+    /**
+     * Redact sensitive information from an array.
+     *
+     * @param array $data The data to redact.
+     * @return array
+     */
     private function redactSecrets(array $data): array
     {
         $sensitive = ['password', 'secret', 'token', 'key', 'auth', 'cookie', 'session'];
@@ -112,6 +158,14 @@ class ExceptionHandler
         return $data;
     }
 
+    /**
+     * Get a snippet of code around the given line in the given file.
+     *
+     * @param string $file The file path.
+     * @param int $line The line number to focus on.
+     * @param int $padding The number of lines to show before and after.
+     * @return array
+     */
     private function getSnippet(string $file, int $line, int $padding = 10): array
     {
         if (!file_exists($file)) return [];
@@ -126,6 +180,12 @@ class ExceptionHandler
         return $snippet;
     }
 
+    /**
+     * Get the HTML structure for the debug page.
+     *
+     * @param string $jsonPayload The JSON encoded payload to inject.
+     * @return string
+     */
     private function getDebugHtml(string $jsonPayload): string
     {
         return <<<HTML
@@ -259,6 +319,12 @@ class ExceptionHandler
 HTML;
     }
 
+    /**
+     * Render a generic error page for production.
+     *
+     * @param int $statusCode The HTTP status code.
+     * @return string
+     */
     private function renderErrorPage(int $statusCode): string
     {
         return "<h1>Error {$statusCode}</h1><p>Something went wrong.</p>";

@@ -4,10 +4,27 @@ namespace Lily\Diagnostics;
 
 use Lily\Database\Db;
 
+/**
+ * Class HealthMonitor
+ *
+ * Provides system health monitoring and diagnostic checks.
+ *
+ * @package Lily\Diagnostics
+ */
 class HealthMonitor
 {
+    /**
+     * HealthMonitor constructor.
+     *
+     * @param Db $db The database instance.
+     */
     public function __construct(private Db $db) {}
 
+    /**
+     * Perform all health checks.
+     *
+     * @return array An array containing health check results.
+     */
     public function check(): array
     {
         return [
@@ -19,6 +36,11 @@ class HealthMonitor
         ];
     }
 
+    /**
+     * Check database connectivity.
+     *
+     * @return bool True if connected successfully, false otherwise.
+     */
     private function checkDatabase(): bool
     {
         try {
@@ -29,6 +51,11 @@ class HealthMonitor
         }
     }
 
+    /**
+     * Check if the cache directory is writable.
+     *
+     * @return bool True if writable, false otherwise.
+     */
     private function checkCacheDir(): bool
     {
         $cacheDir = defined('NCACHE_DIR') ? NCACHE_DIR : dirname(__DIR__, 2) . '/.ncache';
@@ -38,6 +65,11 @@ class HealthMonitor
         return is_writable($cacheDir);
     }
 
+    /**
+     * Check available disk space.
+     *
+     * @return bool True if there is at least 50MB of free space, false otherwise.
+     */
     private function checkDiskSpace(): bool
     {
         $freeSpace = disk_free_space(dirname(__DIR__, 2));

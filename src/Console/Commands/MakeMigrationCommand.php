@@ -4,13 +4,31 @@ namespace Lily\Console\Commands;
 
 use Lily\Console\Command;
 
+/**
+ * Class MakeMigrationCommand
+ *
+ * Command to create a new database migration.
+ *
+ * @package Lily\Console\Commands
+ */
 class MakeMigrationCommand extends Command
 {
+    /**
+     * Get the name of the command.
+     *
+     * @return string The command name.
+     */
     public function getName(): string
     {
         return 'make:migration';
     }
 
+    /**
+     * Execute the command to make a migration.
+     *
+     * @param array $args The arguments passed to the command.
+     * @return int The exit status code.
+     */
     public function execute(array $args): int
     {
         if (empty($args[0])) {

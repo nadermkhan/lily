@@ -2,10 +2,25 @@
 
 namespace Lily\Queue;
 
+/**
+ * Class QueueManager
+ *
+ * Manages the pushing and popping of jobs using file-based storage.
+ *
+ * @package Lily\Queue
+ */
 class QueueManager
 {
+    /**
+     * @var string The directory where queue jobs are stored.
+     */
     private string $queueDir;
 
+    /**
+     * QueueManager constructor.
+     *
+     * @param string $queueDir The path to the queue directory (default 'storage/queue').
+     */
     public function __construct(string $queueDir = 'storage/queue')
     {
         $this->queueDir = rtrim($queueDir, '/');
@@ -14,6 +29,12 @@ class QueueManager
         }
     }
 
+    /**
+     * Push a job onto the queue.
+     *
+     * @param JobInterface $job The job to be queued.
+     * @return void
+     */
     public function push(JobInterface $job): void
     {
         $id = uniqid('job_', true);
@@ -28,6 +49,11 @@ class QueueManager
         file_put_contents($filename, json_encode($data));
     }
 
+    /**
+     * Pop the oldest job from the queue.
+     *
+     * @return JobInterface|null The queued job or null if the queue is empty.
+     */
     public function pop(): ?JobInterface
     {
         $files = glob($this->queueDir . '/*.job');

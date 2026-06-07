@@ -6,8 +6,21 @@ use Lily\Database\Db;
 use Lily\Database\Schema\Attributes\Column;
 use ReflectionClass;
 
+/**
+ * Class MigrateDiffCommand
+ *
+ * Command to analyze schema differences and generate migrations.
+ *
+ * @package Lily\Console\Commands
+ */
 class MigrateDiffCommand
 {
+    /**
+     * Execute the command to analyze and generate migrations based on differences.
+     *
+     * @param array $args The arguments passed to the command.
+     * @return void
+     */
     public function execute(array $args): void
     {
         echo "Analyzing Models for schema differences...\n";
@@ -86,6 +99,14 @@ class MigrateDiffCommand
         }
     }
 
+    /**
+     * Generate a migration file for the specified table and columns.
+     *
+     * @param string $table The table name.
+     * @param array $columns The columns to process.
+     * @param bool $isNewTable Indicates if the table is new or being updated.
+     * @return void
+     */
     private function generateMigration(string $table, array $columns, bool $isNewTable): void
     {
         $timestamp = date('Y_m_d_His');

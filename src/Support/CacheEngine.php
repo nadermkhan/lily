@@ -2,10 +2,26 @@
 
 namespace Lily\Support;
 
+/**
+ * A simple file-based caching engine.
+ * 
+ * Provides methods to get, set, check, and clear cached items.
+ */
 class CacheEngine
 {
+    /**
+     * The directory where cache files are stored.
+     *
+     * @var string
+     */
     private string $cacheDir;
 
+    /**
+     * Create a new CacheEngine instance.
+     *
+     * @param string $cacheDir The directory to store cache files.
+     * @return void
+     */
     public function __construct(string $cacheDir)
     {
         $this->cacheDir = rtrim($cacheDir, '/');
@@ -14,6 +30,11 @@ class CacheEngine
         }
     }
 
+    /**
+     * Determine if caching is currently allowed based on the environment.
+     *
+     * @return bool
+     */
     private function isCachingAllowed(): bool
     {
         // Automatically disable caching if debug mode is on
@@ -35,6 +56,14 @@ class CacheEngine
         return $allowed === 'true' || $allowed === '1';
     }
 
+    /**
+     * Set a value in the cache.
+     *
+     * @param string $key The cache key.
+     * @param mixed $value The value to cache.
+     * @param int $ttl The time-to-live in seconds.
+     * @return void
+     */
     public function set(string $key, mixed $value, int $ttl = 3600): void
     {
         if (!$this->isCachingAllowed()) {
@@ -49,6 +78,13 @@ class CacheEngine
         file_put_contents($file, json_encode($data));
     }
 
+    /**
+     * Get a value from the cache.
+     *
+     * @param string $key The cache key.
+     * @param mixed $default The default value if the key does not exist.
+     * @return mixed
+     */
     public function get(string $key, mixed $default = null): mixed
     {
         if (!$this->isCachingAllowed()) {
@@ -69,6 +105,12 @@ class CacheEngine
         return unserialize($data['value']);
     }
 
+    /**
+     * Determine if a key exists in the cache.
+     *
+     * @param string $key The cache key.
+     * @return bool
+     */
     public function has(string $key): bool
     {
         if (!$this->isCachingAllowed()) {
@@ -89,6 +131,12 @@ class CacheEngine
         return true;
     }
 
+    /**
+     * Remove an item from the cache.
+     *
+     * @param string $key The cache key.
+     * @return void
+     */
     public function forget(string $key): void
     {
         $file = $this->getCacheFile($key);
@@ -97,6 +145,11 @@ class CacheEngine
         }
     }
 
+    /**
+     * Clear all cached files.
+     *
+     * @return void
+     */
     public function clear(): void
     {
         $files = glob($this->cacheDir . '/*.cache');
@@ -109,6 +162,12 @@ class CacheEngine
         }
     }
 
+    /**
+     * Get the file path for a given cache key.
+     *
+     * @param string $key The cache key.
+     * @return string
+     */
     private function getCacheFile(string $key): string
     {
         return $this->cacheDir . '/' . md5($key) . '.cache';

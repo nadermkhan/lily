@@ -2,8 +2,21 @@
 
 namespace Lily\Console\Commands;
 
+/**
+ * Class EnvGenerateCommand
+ *
+ * Command to generate the environment configuration files.
+ *
+ * @package Lily\Console\Commands
+ */
 class EnvGenerateCommand
 {
+    /**
+     * Execute the command to generate environment files.
+     *
+     * @param array $args The arguments passed to the command.
+     * @return void
+     */
     public function execute(array $args): void
     {
         $basePath = dirname(__DIR__, 3);

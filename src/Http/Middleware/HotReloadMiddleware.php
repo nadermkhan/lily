@@ -7,8 +7,18 @@ use Lily\Http\Response;
 use Lily\Support\Env;
 use Lily\Http\Controllers\HotReloadController;
 
+/**
+ * Middleware to inject Hot Reloading scripts and handle SSE connections.
+ */
 class HotReloadMiddleware
 {
+    /**
+     * Handle the incoming request.
+     *
+     * @param Request $request The incoming request.
+     * @param callable $next The next middleware or handler in the pipeline.
+     * @return Response
+     */
     public function handle(Request $request, callable $next): Response
     {
         if (Env::get('APP_ENV', 'development') !== 'development') {

@@ -2,8 +2,16 @@
 
 namespace Lily\Http\Controllers;
 
+/**
+ * Controller for handling hot reloading server-sent events.
+ */
 class HotReloadController
 {
+    /**
+     * Handle the incoming request and stream SSE data.
+     *
+     * @return void
+     */
     public function handle(): void
     {
         // Prevent buffering
@@ -42,6 +50,12 @@ class HotReloadController
         }
     }
 
+    /**
+     * Get the latest modification time of files in the given directories.
+     *
+     * @param array $dirs The list of directories to watch.
+     * @return int The latest modification timestamp.
+     */
     private function getLatestModTime(array $dirs): int
     {
         $latest = 0;

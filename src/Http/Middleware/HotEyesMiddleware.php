@@ -6,8 +6,18 @@ use Lily\Http\Request;
 use Lily\Http\Response;
 use Lily\Http\Controllers\HotEyesController;
 
+/**
+ * Middleware to inject HotEyes telemetry script and intercept beacon requests.
+ */
 class HotEyesMiddleware
 {
+    /**
+     * Handle the incoming request.
+     *
+     * @param Request $request The incoming request.
+     * @param callable $next The next middleware or handler in the pipeline.
+     * @return Response
+     */
     public function handle(Request $request, callable $next): Response
     {
         // Intercept beacon route

@@ -8,11 +8,35 @@ use Lily\Http\Request;
 use Lily\Support\Env;
 use ErrorException;
 
+/**
+ * The core Application class for the Lily framework.
+ * 
+ * This class extends the dependency injection Container and serves as the 
+ * central registry and orchestrator for the application, handling basic 
+ * environment setup and error handling.
+ */
 class Application extends Container
 {
+    /**
+     * The singleton instance of the application.
+     *
+     * @var \Lily\Foundation\Application|null
+     */
     protected static ?Application $instance = null;
+
+    /**
+     * The base path of the application installation.
+     *
+     * @var string
+     */
     private string $basePath;
 
+    /**
+     * Create a new Application instance.
+     *
+     * @param string $basePath The base path of the application.
+     * @return void
+     */
     public function __construct(string $basePath = '')
     {
         $this->basePath = rtrim($basePath, '\/');
@@ -26,6 +50,14 @@ class Application extends Container
         $this->initErrorHandling();
     }
 
+    /**
+     * Initialize the application's error handling.
+     * 
+     * Sets up a custom error handler that throws ErrorExceptions 
+     * based on strict type safety settings in the environment.
+     *
+     * @return void
+     */
     protected function initErrorHandling(): void
     {
         // Type Safety / Null Safety Switch
@@ -44,6 +76,13 @@ class Application extends Container
         }
     }
 
+    /**
+     * Register the basic bindings into the container.
+     * 
+     * Binds the application instance to itself and the Container interface.
+     *
+     * @return void
+     */
     protected function registerBaseBindings(): void
     {
         static::setInstance($this);
@@ -51,16 +90,32 @@ class Application extends Container
         $this->instance(Container::class, $this);
     }
 
+    /**
+     * Set the globally available instance of the application.
+     *
+     * @param \Lily\Foundation\Application|null $app The application instance.
+     * @return void
+     */
     public static function setInstance(?Application $app): void
     {
         static::$instance = $app;
     }
 
+    /**
+     * Get the globally available instance of the application.
+     *
+     * @return \Lily\Foundation\Application|null
+     */
     public static function getInstance(): ?Application
     {
         return static::$instance;
     }
     
+    /**
+     * Get the base path of the application.
+     *
+     * @return string
+     */
     public function getBasePath(): string
     {
         return $this->basePath;

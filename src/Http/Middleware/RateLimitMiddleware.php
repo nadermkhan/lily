@@ -7,12 +7,35 @@ use Lily\Http\Response;
 use Lily\Services\TelegramNotifier;
 use Lily\Support\Env;
 
+/**
+ * Middleware to rate-limit incoming HTTP requests.
+ */
 class RateLimitMiddleware
 {
+    /**
+     * The directory where rate limit hits are stored.
+     *
+     * @var string
+     */
     private string $storageDir;
+
+    /**
+     * The maximum number of allowed hits per minute.
+     *
+     * @var int
+     */
     private int $maxHitsPerMinute = 60;
+
+    /**
+     * The threshold at which an alert is sent.
+     *
+     * @var int
+     */
     private int $alertThreshold = 200;
 
+    /**
+     * Create a new RateLimitMiddleware instance.
+     */
     public function __construct()
     {
         $this->storageDir = rtrim('storage/rate_limit', '/');
@@ -21,6 +44,13 @@ class RateLimitMiddleware
         }
     }
 
+    /**
+     * Handle the incoming request.
+     *
+     * @param Request $request The incoming request.
+     * @param callable $next The next middleware or handler in the pipeline.
+     * @return Response
+     */
     public function handle(Request $request, callable $next): Response
     {
         $ip = $request->server['REMOTE_ADDR'] ?? '127.0.0.1';
@@ -51,6 +81,12 @@ class RateLimitMiddleware
         return $next($request);
     }
 
+    /**
+     * Send an alert notification to the administrator.
+     *
+     * @param string $ip The IP address that triggered the alert.
+     * @return void
+     */
     private function alertAdmin(string $ip): void
     {
         $botToken = Env::get('TELEGRAM_BOT_TOKEN');

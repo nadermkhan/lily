@@ -5,11 +5,28 @@ namespace Lily\Auth;
 use Lily\Database\Db;
 use Lily\Foundation\Application;
 
+/**
+ * Class Bolt
+ *
+ * Provides a lightweight authentication and personal access token management system.
+ */
 class Bolt
 {
+    /**
+     * @var Db The database instance for token storage.
+     */
     private Db $db;
+
+    /**
+     * @var string The path to the compiled tokens cache file.
+     */
     private string $cacheFile;
 
+    /**
+     * Bolt constructor.
+     *
+     * Initializes the database connection and sets the cache file path.
+     */
     public function __construct()
     {
         $app = Application::getInstance();
@@ -21,6 +38,11 @@ class Bolt
         $this->cacheFile = $basePath . '/storage/auth/tokens.php';
     }
 
+    /**
+     * Ensures that the personal access tokens table exists in the database.
+     *
+     * @return void
+     */
     private function ensureTableExists(): void
     {
         $this->db->query("
@@ -34,6 +56,13 @@ class Bolt
         ");
     }
 
+    /**
+     * Issues a new personal access token for a given user.
+     *
+     * @param int|string $userId The user ID to issue the token for.
+     * @param string $name An optional name to identify the token.
+     * @return string The generated plain text token.
+     */
     public function issueToken(int|string $userId, string $name = 'default'): string
     {
         $this->ensureTableExists();
@@ -57,6 +86,13 @@ class Bolt
         return $plainTextToken;
     }
 
+    /**
+     * Revokes a specific token for a user.
+     *
+     * @param int|string $userId The user ID whose token should be revoked.
+     * @param string $name The name of the token to revoke.
+     * @return void
+     */
     public function revokeToken(int|string $userId, string $name = 'default'): void
     {
         $this->ensureTableExists();
@@ -70,6 +106,11 @@ class Bolt
         $this->compile();
     }
 
+    /**
+     * Compiles all valid tokens into a highly efficient PHP cache file.
+     *
+     * @return void
+     */
     public function compile(): void
     {
         $dir = dirname($this->cacheFile);

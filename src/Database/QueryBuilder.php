@@ -2,24 +2,63 @@
 
 namespace Lily\Database;
 
+/**
+ * Class QueryBuilder
+ *
+ * Provides a fluent interface for building and executing SQL queries.
+ */
 class QueryBuilder
 {
+    /**
+     * @var Db The database connection instance.
+     */
     private Db $db;
+
+    /**
+     * @var string The database table to query against.
+     */
     private string $table = '';
+
+    /**
+     * @var array List of WHERE clause conditions.
+     */
     private array $where = [];
+
+    /**
+     * @var array Values bound to the query parameters.
+     */
     private array $bindings = [];
 
+    /**
+     * QueryBuilder constructor.
+     *
+     * @param Db $db The database connection instance.
+     */
     public function __construct(Db $db)
     {
         $this->db = $db;
     }
 
+    /**
+     * Sets the target table for the query.
+     *
+     * @param string $table The name of the table.
+     * @return self Returns the QueryBuilder instance for method chaining.
+     */
     public function table(string $table): self
     {
         $this->table = $table;
         return $this;
     }
 
+    /**
+     * Adds a basic WHERE clause to the query.
+     *
+     * @param string $column The column to filter by.
+     * @param string $operator The comparison operator (e.g., '=', '<', '>', 'LIKE').
+     * @param mixed $value The value to compare against the column.
+     * @return self Returns the QueryBuilder instance for method chaining.
+     */
     public function where(string $column, string $operator, mixed $value): self
     {
         $this->where[] = "{$column} {$operator} ?";
@@ -27,6 +66,11 @@ class QueryBuilder
         return $this;
     }
 
+    /**
+     * Executes the query and returns the result set as an array.
+     *
+     * @return array An array containing all fetched rows.
+     */
     public function get(): array
     {
         $sql = "SELECT * FROM {$this->table}";

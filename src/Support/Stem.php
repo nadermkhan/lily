@@ -5,6 +5,11 @@ namespace Lily\Support;
 use Lily\Foundation\Application;
 use RuntimeException;
 
+/**
+ * Base class for all Stem facades.
+ * 
+ * Provides static access to instances bound in the application container.
+ */
 abstract class Stem
 {
     /**

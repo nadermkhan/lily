@@ -4,8 +4,21 @@ namespace Lily\Console\Commands;
 
 use Lily\Foundation\Application;
 
+/**
+ * Class TinkerCommand
+ *
+ * Command to run an interactive REPL environment.
+ *
+ * @package Lily\Console\Commands
+ */
 class TinkerCommand
 {
+    /**
+     * Execute the Tinker command.
+     *
+     * @param array $args The arguments passed to the command.
+     * @return void
+     */
     public function execute(array $args): void
     {
         echo "Lily Tinker REPL\n";

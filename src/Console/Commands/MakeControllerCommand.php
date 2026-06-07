@@ -4,13 +4,31 @@ namespace Lily\Console\Commands;
 
 use Lily\Console\Command;
 
+/**
+ * Class MakeControllerCommand
+ *
+ * Command to create a new controller class.
+ *
+ * @package Lily\Console\Commands
+ */
 class MakeControllerCommand extends Command
 {
+    /**
+     * Get the name of the command.
+     *
+     * @return string The command name.
+     */
     public function getName(): string
     {
         return 'make:controller';
     }
 
+    /**
+     * Execute the command to make a controller.
+     *
+     * @param array $args The arguments passed to the command.
+     * @return int The exit status code.
+     */
     public function execute(array $args): int
     {
         if (empty($args[0])) {
