@@ -215,15 +215,14 @@ class Router
         $matched = $this->traverseRecursive($this->root, $segments, 0, $method, $currentHost, [], $tried);
 
         if ($matched === null) {
+            if (!empty($tried)) {
+                return new Response('405 Method Not Allowed', 405);
+            }
             return new Response('404 Not Found', 404);
         }
 
         $request->setRouteParams($matched['params']);
-        $action = $matched['node']->handlers[$method] ?? null;
-
-        if (!$action) {
-            return new Response('405 Method Not Allowed', 405);
-        }
+        $action = $matched['node']->handlers[$method];
 
         return $this->callAction($action, $request);
     }
@@ -252,17 +251,37 @@ class Router
         $count = count($segments);
 
         if ($i === $count) {
-            if ($node->isLeaf && isset($node->handlers[$method])) {
-                if ($this->checkDomain($node, $method, $currentHost)) {
+            if ($node->isLeaf) {
+                $domainMatchedForOtherMethod = false;
+                foreach ($node->handlers as $m => $handler) {
+                    if ($m !== $method && $this->checkDomain($node, $m, $currentHost)) {
+                        $domainMatchedForOtherMethod = true;
+                        break;
+                    }
+                }
+                
+                if (isset($node->handlers[$method]) && $this->checkDomain($node, $method, $currentHost)) {
                     return ['node' => $node, 'params' => $params];
+                } elseif ($domainMatchedForOtherMethod) {
+                    $tried[] = ['node' => $node, 'params' => $params];
                 }
             }
             if ($node->wildcardChild !== null) {
                 $p = $params;
                 $p[$node->wildcardChild->wildcardName ?? '_'] = '';
-                if ($node->wildcardChild->isLeaf && isset($node->wildcardChild->handlers[$method])) {
-                    if ($this->checkDomain($node->wildcardChild, $method, $currentHost)) {
+                if ($node->wildcardChild->isLeaf) {
+                    $domainMatchedForOtherMethod = false;
+                    foreach ($node->wildcardChild->handlers as $m => $handler) {
+                        if ($m !== $method && $this->checkDomain($node->wildcardChild, $m, $currentHost)) {
+                            $domainMatchedForOtherMethod = true;
+                            break;
+                        }
+                    }
+                    
+                    if (isset($node->wildcardChild->handlers[$method]) && $this->checkDomain($node->wildcardChild, $method, $currentHost)) {
                         return ['node' => $node->wildcardChild, 'params' => $p];
+                    } elseif ($domainMatchedForOtherMethod) {
+                        $tried[] = ['node' => $node->wildcardChild, 'params' => $p];
                     }
                 }
             }
@@ -290,9 +309,19 @@ class Router
             $tail = implode('/', array_slice($segments, $i));
             $p = $params;
             $p[$node->wildcardChild->wildcardName ?? '_'] = $tail;
-            if ($node->wildcardChild->isLeaf && isset($node->wildcardChild->handlers[$method])) {
-                if ($this->checkDomain($node->wildcardChild, $method, $currentHost)) {
+            if ($node->wildcardChild->isLeaf) {
+                $domainMatchedForOtherMethod = false;
+                foreach ($node->wildcardChild->handlers as $m => $handler) {
+                    if ($m !== $method && $this->checkDomain($node->wildcardChild, $m, $currentHost)) {
+                        $domainMatchedForOtherMethod = true;
+                        break;
+                    }
+                }
+                
+                if (isset($node->wildcardChild->handlers[$method]) && $this->checkDomain($node->wildcardChild, $method, $currentHost)) {
                     return ['node' => $node->wildcardChild, 'params' => $p];
+                } elseif ($domainMatchedForOtherMethod) {
+                    $tried[] = ['node' => $node->wildcardChild, 'params' => $p];
                 }
             }
         }
@@ -338,12 +367,16 @@ class Router
             $result = call_user_func($action, $request);
         } elseif (is_array($action)) {
             [$class, $method] = $action;
+            if (!class_exists($class)) throw new \InvalidArgumentException("Controller class $class does not exist.");
+            if (!method_exists($class, $method)) throw new \InvalidArgumentException("Method $method does not exist on $class.");
             $controller = new $class();
             $result = $controller->$method($request);
         } elseif (is_string($action)) {
             $parts = explode('@', $action);
             $class = $parts[0];
             $method = $parts[1] ?? 'index';
+            if (!class_exists($class)) throw new \InvalidArgumentException("Controller class $class does not exist.");
+            if (!method_exists($class, $method)) throw new \InvalidArgumentException("Method $method does not exist on $class.");
             $controller = new $class();
             $result = $controller->$method($request);
         } else {

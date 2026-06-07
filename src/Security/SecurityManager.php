@@ -13,6 +13,22 @@ use Lily\Http\Response;
 class SecurityManager
 {
     /**
+     * @var array List of trusted proxy IPs.
+     */
+    private array $trustedProxies = [];
+
+    /**
+     * Set the trusted proxies.
+     *
+     * @param array $proxies
+     * @return self
+     */
+    public function setTrustedProxies(array $proxies): self
+    {
+        $this->trustedProxies = $proxies;
+        return $this;
+    }
+    /**
      * Generates a new CSRF token if one does not exist and returns it.
      *
      * @return string The generated or existing CSRF token.
@@ -34,7 +50,13 @@ class SecurityManager
     public function validateCsrfToken(Request $request): bool
     {
         $token = $request->post['csrf_token'] ?? $request->server['HTTP_X_CSRF_TOKEN'] ?? '';
-        return hash_equals($_SESSION['csrf_token'] ?? '', $token);
+        $sessionToken = $_SESSION['csrf_token'] ?? '';
+        
+        if (empty($token) || empty($sessionToken)) {
+            return false;
+        }
+
+        return hash_equals($sessionToken, $token);
     }
 
     /**
@@ -45,7 +67,14 @@ class SecurityManager
      */
     public function resolveIp(Request $request): string
     {
-        return $request->server['HTTP_X_FORWARDED_FOR'] ?? $request->server['REMOTE_ADDR'] ?? '0.0.0.0';
+        $remoteAddr = $request->server['REMOTE_ADDR'] ?? '0.0.0.0';
+
+        if (in_array($remoteAddr, $this->trustedProxies, true) && !empty($request->server['HTTP_X_FORWARDED_FOR'])) {
+            $proxies = explode(',', $request->server['HTTP_X_FORWARDED_FOR']);
+            return trim($proxies[0]);
+        }
+
+        return $remoteAddr;
     }
 
     /**

@@ -47,7 +47,7 @@ class QueryBuilder
      */
     public function table(string $table): self
     {
-        $this->table = $table;
+        $this->table = $this->escapeIdentifier($table);
         return $this;
     }
 
@@ -61,7 +61,14 @@ class QueryBuilder
      */
     public function where(string $column, string $operator, mixed $value): self
     {
-        $this->where[] = "{$column} {$operator} ?";
+        $operator = strtoupper(trim($operator));
+        $allowedOperators = ['=', '<', '>', '<=', '>=', '<>', '!=', 'LIKE', 'NOT LIKE', 'IN', 'NOT IN', 'IS', 'IS NOT'];
+        if (!in_array($operator, $allowedOperators, true)) {
+            throw new \InvalidArgumentException("Invalid SQL operator: $operator");
+        }
+
+        $col = $this->escapeIdentifier($column);
+        $this->where[] = "{$col} {$operator} ?";
         $this->bindings[] = $value;
         return $this;
     }
@@ -81,5 +88,17 @@ class QueryBuilder
 
         $stmt = $this->db->query($sql, $this->bindings);
         return $stmt->fetchAll();
+    }
+
+    /**
+     * Secures identifiers against SQL injection.
+     *
+     * @param string $identifier The table or column name.
+     * @return string
+     */
+    private function escapeIdentifier(string $identifier): string
+    {
+        // Strictly allow alphanumeric, underscores, dots, and asterisks.
+        return preg_replace('/[^a-zA-Z0-9_.*]/', '', $identifier);
     }
 }

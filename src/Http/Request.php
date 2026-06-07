@@ -75,8 +75,37 @@ class Request
         $this->get = $get;
         $this->post = $post;
         $this->server = $server;
-        $this->files = $files;
+        $this->files = $this->parseFiles($files);
         $this->cookies = $cookies;
+    }
+
+    private function parseFiles(array $files): array
+    {
+        $parsed = [];
+        foreach ($files as $key => $file) {
+            if (is_array($file['name'])) {
+                // Handle array of files: name="files[]"
+                $parsed[$key] = [];
+                foreach (array_keys($file['name']) as $i) {
+                    $parsed[$key][] = new UploadedFile(
+                        $file['name'][$i],
+                        $file['type'][$i],
+                        $file['tmp_name'][$i],
+                        $file['error'][$i],
+                        $file['size'][$i]
+                    );
+                }
+            } else {
+                $parsed[$key] = new UploadedFile(
+                    $file['name'],
+                    $file['type'],
+                    $file['tmp_name'],
+                    $file['error'],
+                    $file['size']
+                );
+            }
+        }
+        return $parsed;
     }
 
     /**
@@ -184,5 +213,26 @@ class Request
         }
 
         return $payload[$key] ?? $default;
+    }
+
+    /**
+     * Get an uploaded file by key.
+     *
+     * @param string $key
+     * @return UploadedFile|UploadedFile[]|null
+     */
+    public function file(string $key): UploadedFile|array|null
+    {
+        return $this->files[$key] ?? null;
+    }
+
+    /**
+     * Get all uploaded files.
+     *
+     * @return array
+     */
+    public function allFiles(): array
+    {
+        return $this->files;
     }
 }

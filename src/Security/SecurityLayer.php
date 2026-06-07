@@ -41,6 +41,12 @@ class SecurityLayer
      */
     public function validateCsrfToken(string $token): bool
     {
-        return hash_equals($_SESSION['csrf_token'] ?? '', $token);
+        $sessionToken = $_SESSION['csrf_token'] ?? '';
+        
+        if (empty($token) || empty($sessionToken)) {
+            return false;
+        }
+
+        return hash_equals($sessionToken, $token);
     }
 }
